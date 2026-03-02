@@ -1,0 +1,12 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+# Next.js build output
+.next
+out
+
+/lib/generated/prisma
+
+# Documentation (local only)
+/docs

@@ -1,0 +1,52 @@
+// Prisma schema for Brújula Lead Generation System
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Lead {
+  id                    String    @id @default(cuid())
+  created_at            DateTime  @default(now())
+  ultima_actividad_at   DateTime  @default(now()) @updatedAt
+
+  // Contacto
+  nombre                String
+  email                 String
+  telefono              String
+
+  // Negocio
+  industria             String
+  tamano_empresa        String
+  dolores_principales   String[]
+  herramientas_actuales String[]
+  descripcion_problema  String    @default("")
+
+  // Calificación
+  presupuesto           String
+  urgencia              String
+  respuestas_branch     Json      @default("{}")
+  respuestas_ia         String[]  @default([])
+
+  // Generados por el sistema
+  score                 Json?     // ScoreBreakdown completo
+  diagnostico           Json?     // DiagnosisResult completo
+
+  // Pipeline
+  segmento              String    @default("COLD")
+  estado_pipeline       String    @default("wizard_completado")
+  llamada_agendada_at   DateTime?
+  notas_freelancer      String    @default("")
+
+  // Tracking de comportamiento
+  score_dinamico        Int       @default(0)
+  emails_abiertos       Int       @default(0)
+  visitas_propuesta     Int       @default(0)
+  ultima_visita_at      DateTime?
+}

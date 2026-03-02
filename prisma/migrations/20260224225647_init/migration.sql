@@ -1,0 +1,30 @@
+-- CreateTable
+CREATE TABLE "Lead" (
+    "id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ultima_actividad_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "nombre" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "telefono" TEXT NOT NULL,
+    "industria" TEXT NOT NULL,
+    "tamano_empresa" TEXT NOT NULL,
+    "dolores_principales" TEXT[],
+    "herramientas_actuales" TEXT[],
+    "descripcion_problema" TEXT NOT NULL DEFAULT '',
+    "presupuesto" TEXT NOT NULL,
+    "urgencia" TEXT NOT NULL,
+    "respuestas_branch" JSONB NOT NULL DEFAULT '{}',
+    "respuestas_ia" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "score" JSONB,
+    "diagnostico" JSONB,
+    "segmento" TEXT NOT NULL DEFAULT 'COLD',
+    "estado_pipeline" TEXT NOT NULL DEFAULT 'wizard_completado',
+    "llamada_agendada_at" TIMESTAMP(3),
+    "notas_freelancer" TEXT NOT NULL DEFAULT '',
+    "score_dinamico" INTEGER NOT NULL DEFAULT 0,
+    "emails_abiertos" INTEGER NOT NULL DEFAULT 0,
+    "visitas_propuesta" INTEGER NOT NULL DEFAULT 0,
+    "ultima_visita_at" TIMESTAMP(3),
+
+    CONSTRAINT "Lead_pkey" PRIMARY KEY ("id")
+);
