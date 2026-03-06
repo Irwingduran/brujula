@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { calculateScore } from "@/lib/scoring"
 import { generateDiagnosis } from "@/lib/diagnosis"
 import { sendDiagnosticoEmail, sendHotLeadNotification } from "@/lib/email"
-import type { WizardData, DiagnosisResult, ScoreBreakdown } from "@/lib/types"
+import type { WizardData, DiagnosisResult, ScoreBreakdown } from "@/lib/types" 
 
 // GET /api/leads — Listar todos
 export async function GET() {
