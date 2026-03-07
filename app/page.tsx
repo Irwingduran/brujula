@@ -2,9 +2,6 @@
 
 import { Logo } from "@/components/shared/logo"
 import { Hero } from "@/components/landing/hero"
-import { PainPoints } from "@/components/landing/pain-points"
-import { ProcessSteps } from "@/components/landing/process-steps"
-import { SocialProof } from "@/components/landing/social-proof"
 import { Footer } from "@/components/landing/footer"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -25,12 +22,6 @@ export default function LandingPage() {
           <Logo />
           <div className="flex items-center gap-4">
             <Link
-              href="/admin"
-              className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
-            >
-              Admin
-            </Link>
-            <Link
               href="/diagnostico"
               className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:shadow-md hover:shadow-primary/20"
             >
@@ -43,9 +34,6 @@ export default function LandingPage() {
 
       <main>
         <Hero />
-        <PainPoints />
-        <ProcessSteps />
-        <SocialProof />
 
         {/* Final CTA */}
         <section className="relative overflow-hidden px-4 py-20 md:py-28">
