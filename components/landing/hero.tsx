@@ -47,7 +47,7 @@ export function Hero() {
               transition={{ delay: 0.2 }}
               className="mt-6 text-xl text-muted-foreground"
             >
-              Descúbrelo en 3 minutos. Gratis.
+              Agencia con consultoría digital sobre tu negocio en tiempo real. <br /> Y es gratis.
             </motion.p>
 
             <motion.div
@@ -65,8 +65,9 @@ export function Hero() {
               </Link>
               
               <div className="flex justify-center gap-6 mt-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> 3 min</span>
-                <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin registro</span>
+                    <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin registro</span>
+                <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin pago</span>
+                 <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin compromiso</span>
               </div>
             </motion.div>
           </div>
@@ -79,7 +80,7 @@ export function Hero() {
         >
           <div className="max-w-2xl mx-auto text-center">
             <span className="text-sm font-medium text-muted-foreground tracking-wider">PASO 1/3</span>
-            <h2 className="mt-4 text-4xl md:text-5xl font-bold">Respondes 10 preguntas</h2>
+            <h2 className="mt-4 text-4xl md:text-5xl font-bold">Respondes una serie de preguntas</h2>
             <p className="mt-4 text-xl text-muted-foreground">
               Sobre tu negocio, tus clientes y tus objetivos.
             </p>
@@ -94,9 +95,9 @@ export function Hero() {
         >
           <div className="max-w-2xl mx-auto text-center">
             <span className="text-sm font-medium text-muted-foreground tracking-wider">PASO 2/3</span>
-            <h2 className="mt-4 text-4xl md:text-5xl font-bold">IA genera tu plan</h2>
+            <h2 className="mt-4 text-4xl md:text-5xl font-bold">Brujúla genera tu plan</h2>
             <p className="mt-4 text-xl text-muted-foreground">
-              Análisis personalizado con acciones concretas.
+              Análisis personalizado con modelos de Inteligencía Artificíal para acciones concretas.
             </p>
             <div className="mt-8 text-6xl font-light text-primary">📋</div>
           </div>
@@ -118,7 +119,7 @@ export function Hero() {
             </h2>
             
             <p className="mt-4 text-xl text-muted-foreground">
-              30 minutos gratis con un experto para revisar tu plan.
+              30 minutos gratis con un experto para el seguimiento de tu plan.
             </p>
 
             <div className="mt-10">

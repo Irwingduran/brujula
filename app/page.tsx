@@ -9,7 +9,7 @@ import { ArrowRight, Sparkles, Shield, Clock } from "lucide-react"
 
 const CTA_BENEFITS = [
   { icon: Sparkles, text: "100% gratuito" },
-  { icon: Clock, text: "Solo 3 minutos" },
+  { icon: Clock, text: "Consultoría en tiempo real" },
   { icon: Shield, text: "Sin compromiso" },
 ]
 
