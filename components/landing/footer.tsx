@@ -22,9 +22,6 @@ export function Footer() {
               <Link href="/diagnostico" className="transition-colors hover:text-foreground">
                 Diagnóstico
               </Link>
-              <Link href="/admin" className="transition-colors hover:text-foreground">
-                Admin
-              </Link>
               <span className="cursor-pointer hover:text-foreground">Política de privacidad</span>
             </div>
           </div>
@@ -35,11 +32,11 @@ export function Footer() {
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span>hola@brujula.digital</span>
+                <span>hola@somosbrujula.com.mx</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <span>LATAM</span>
+                <span>México</span>
               </div>
             </div>
           </div>
