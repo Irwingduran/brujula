@@ -64,6 +64,11 @@ export const PAIN_POINTS: { value: PainPoint; label: string; description: string
     label: "Atencion al cliente",
     description: "Dificultad para dar seguimiento y soporte",
   },
+  {
+    value: "otro",
+    label: "Otro",
+    description: "Tengo un desafío diferente a los anteriores",
+  },
 ]
 
 // ============================
@@ -149,6 +154,7 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
           { value: "intuicion", label: "Por intuicion" },
           { value: "datos_basicos", label: "Con datos basicos (Excel)" },
           { value: "reportes", label: "Con reportes estructurados" },
+          { value: "otro", label: "Otro" },
         ],
       },
     ],
@@ -167,6 +173,7 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
           { value: "redes", label: "Redes sociales" },
           { value: "referidos", label: "Referidos / Boca a boca" },
           { value: "mixto", label: "Mixto" },
+          { value: "otro", label: "Otro" },
         ],
       },
       {
@@ -190,6 +197,7 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
           { value: "redes_basicas", label: "Redes sociales basicas" },
           { value: "web_basica", label: "Web basica / landing" },
           { value: "web_completa", label: "Web completa + redes" },
+          { value: "otro", label: "Otro" },
         ],
       },
       {
@@ -213,6 +221,7 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
           { value: "pedidos", label: "Pedidos y entregas" },
           { value: "inventario", label: "Inventario" },
           { value: "todo", label: "Todo lo anterior" },
+          { value: "otro", label: "Otro" },
         ],
       },
       {
@@ -236,6 +245,7 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
           { value: "telefono", label: "Telefono" },
           { value: "email", label: "Email" },
           { value: "varios", label: "Varios canales sin centralizar" },
+          { value: "otro", label: "Otro" },
         ],
       },
       {

@@ -107,19 +107,32 @@ export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Pro
                   {field.label}
                 </label>
                 {field.type === "select" ? (
-                  <div className="relative">
-                    <select
-                      id={field.id}
-                      value={branchAnswers[field.id] ?? ""}
-                      onChange={(e) => updateBranch(field.id, e.target.value)}
-                      className="w-full appearance-none rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                    >
-                      <option value="">Selecciona una opción</option>
-                      {field.options?.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <div>
+                    <div className="relative">
+                      <select
+                        id={field.id}
+                        value={branchAnswers[field.id] ?? ""}
+                        onChange={(e) => updateBranch(field.id, e.target.value)}
+                        className="w-full appearance-none rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                      >
+                        <option value="">Selecciona una opción</option>
+                        {field.options?.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    </div>
+                    {branchAnswers[field.id] === "otro" && (
+                      <motion.input
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        type="text"
+                        value={branchAnswers[`${field.id}_otro`] ?? ""}
+                        onChange={(e) => updateBranch(`${field.id}_otro`, e.target.value)}
+                        placeholder="Especifica tu respuesta..."
+                        className="mt-3 w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                      />
+                    )}
                   </div>
                 ) : field.type === "textarea" ? (
                   <textarea

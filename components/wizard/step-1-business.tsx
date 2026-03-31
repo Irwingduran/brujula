@@ -30,7 +30,9 @@ export function Step1Business({ data, onComplete }: Step1Props) {
   const [industriaOtra, setIndustriaOtra] = useState(data?.industria_otra ?? "")
   const [tamano, setTamano] = useState<CompanySize | "">(data?.tamano_empresa ?? "")
   const [dolores, setDolores] = useState<PainPoint[]>(data?.dolores_principales ?? [])
+  const [dolorOtro, setDolorOtro] = useState(data?.dolor_otro ?? "")
   const [herramientas, setHerramientas] = useState<CurrentTool[]>(data?.herramientas_actuales ?? [])
+  const [herramientaOtra, setHerramientaOtra] = useState(data?.herramienta_otra ?? "")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -52,7 +54,9 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     if (industria === "otra" && !industriaOtra.trim()) e.industriaOtra = "Especifica tu industria"
     if (!tamano) e.tamano = "Selecciona el tamaño de tu empresa"
     if (dolores.length === 0) e.dolores = "Selecciona al menos un problema"
+    if (dolores.includes("otro") && !dolorOtro.trim()) e.dolorOtro = "Describe tu desafío"
     if (herramientas.length === 0) e.herramientas = "Selecciona al menos una herramienta"
+    if (herramientas.includes("otro") && !herramientaOtra.trim()) e.herramientaOtra = "Especifica tu herramienta"
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -64,7 +68,9 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       industria_otra: industria === "otra" ? industriaOtra : undefined,
       tamano_empresa: tamano as CompanySize,
       dolores_principales: dolores,
+      dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
       herramientas_actuales: herramientas,
+      herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
     })
   }
 
@@ -199,6 +205,18 @@ export function Step1Business({ data, onComplete }: Step1Props) {
             </motion.button>
           ))}
         </div>
+        {dolores.includes("otro") && (
+          <motion.textarea
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            rows={2}
+            value={dolorOtro}
+            onChange={(e) => setDolorOtro(e.target.value)}
+            placeholder="Describe tu desafío..."
+            className="mt-3 w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 resize-none"
+          />
+        )}
+        {errors.dolorOtro && <p className="mt-2 text-sm text-destructive font-medium">{errors.dolorOtro}</p>}
         {errors.dolores && <p className="mt-2 text-sm text-destructive font-medium">{errors.dolores}</p>}
       </motion.fieldset>
 
@@ -231,6 +249,18 @@ export function Step1Business({ data, onComplete }: Step1Props) {
             </motion.button>
           ))}
         </div>
+        {herramientas.includes("otro") && (
+          <motion.input
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            type="text"
+            value={herramientaOtra}
+            onChange={(e) => setHerramientaOtra(e.target.value)}
+            placeholder="Especifica tu herramienta..."
+            className="mt-3 w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+          />
+        )}
+        {errors.herramientaOtra && <p className="mt-2 text-sm text-destructive font-medium">{errors.herramientaOtra}</p>}
         {errors.herramientas && <p className="mt-2 text-sm text-destructive font-medium">{errors.herramientas}</p>}
       </motion.fieldset>
 

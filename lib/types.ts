@@ -34,6 +34,7 @@ export type PainPoint =
   | "presencia_online"
   | "sin_trazabilidad"
   | "atencion_cliente"
+  | "otro"
 
 export type CurrentTool =
   | "whatsapp"
@@ -53,7 +54,9 @@ export interface WizardStep1Data {
   industria_otra?: string
   tamano_empresa: CompanySize
   dolores_principales: PainPoint[]
+  dolor_otro?: string
   herramientas_actuales: CurrentTool[]
+  herramienta_otra?: string
 }
 
 export interface WizardStep2Data {
