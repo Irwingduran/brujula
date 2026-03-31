@@ -138,7 +138,7 @@ export function Hero() {
               <span className="relative inline-block">
              
                 <span className="relative z-10 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
-                  impulsada por IA
+                  orquestada por IA
                 </span>
                 <svg
                   className="absolute -bottom-1 left-0 w-full"
