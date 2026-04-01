@@ -19,13 +19,13 @@ import type {
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { ArrowLeft, Check, Sparkles, Building2, MessageSquare, BarChart3 } from "lucide-react"
+import { ArrowLeft, Check, Sparkle, Buildings, ChatCircle, ChartBar } from "@phosphor-icons/react"
 
 const STEPS = [
-  { label: "Tu negocio", icon: Building2, description: "Cuéntanos sobre tu empresa" },
-  { label: "Tu situación", icon: MessageSquare, description: "Entendemos tus necesidades" },
-  { label: "Análisis", icon: Sparkles, description: "Analizamos tu información" },
-  { label: "Resultados", icon: BarChart3, description: "Tu diagnóstico personalizado" },
+  { label: "Tu negocio", icon: Buildings, description: "Cuéntanos sobre tu negocio" },
+  { label: "Tu situación", icon: ChatCircle, description: "Entendemos tus necesidades" },
+  { label: "Análisis", icon: Sparkle, description: "Analizamos tu información" },
+  { label: "Resultados", icon: ChartBar, description: "Tu diagnóstico personalizado" },
 ]
 
 const pageVariants = {

@@ -120,8 +120,16 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "proceso_mas_lento",
         label: "Cual es el proceso que mas tiempo te consume?",
-        type: "textarea",
-        placeholder: "Ej: Facturacion, inventario, seguimiento de pedidos...",
+        type: "select",
+        options: [
+          { value: "facturacion", label: "Facturación" },
+          { value: "inventario", label: "Inventario" },
+          { value: "seguimiento_pedidos", label: "Seguimiento de pedidos" },
+          { value: "nomina_rrhh", label: "Nómina / Recursos humanos" },
+          { value: "reportes", label: "Reportes / Contabilidad" },
+          { value: "comunicacion", label: "Comunicación interna" },
+          { value: "otro", label: "Otro" },
+        ],
       },
       {
         id: "horas_semana",
@@ -143,8 +151,15 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "metricas_actuales",
         label: "Que metricas monitoreas actualmente?",
-        type: "textarea",
-        placeholder: "Ej: Ventas mensuales, inventario, satisfaccion del cliente...",
+        type: "select",
+        options: [
+          { value: "ventas", label: "Ventas mensuales" },
+          { value: "inventario", label: "Inventario" },
+          { value: "satisfaccion", label: "Satisfacción del cliente" },
+          { value: "gastos", label: "Gastos / Costos" },
+          { value: "ninguna", label: "Ninguna" },
+          { value: "otro", label: "Otro" },
+        ],
       },
       {
         id: "decisiones_datos",
@@ -179,8 +194,15 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "problema_ventas",
         label: "Cual crees que es el principal freno de tus ventas?",
-        type: "textarea",
-        placeholder: "Ej: Pocos leads, mal seguimiento, competencia de precios...",
+        type: "select",
+        options: [
+          { value: "pocos_leads", label: "Pocos leads / prospectos" },
+          { value: "mal_seguimiento", label: "Mal seguimiento de clientes" },
+          { value: "competencia_precios", label: "Competencia de precios" },
+          { value: "falta_marketing", label: "Falta de marketing" },
+          { value: "proceso_largo", label: "Proceso de venta largo" },
+          { value: "otro", label: "Otro" },
+        ],
       },
     ],
   },
@@ -203,8 +225,15 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "objetivo_online",
         label: "Que te gustaria lograr con tu presencia online?",
-        type: "textarea",
-        placeholder: "Ej: Mas clientes, mejor imagen, vender online...",
+        type: "select",
+        options: [
+          { value: "mas_clientes", label: "Conseguir más clientes" },
+          { value: "mejor_imagen", label: "Mejorar imagen de marca" },
+          { value: "vender_online", label: "Vender online" },
+          { value: "generar_confianza", label: "Generar confianza" },
+          { value: "automatizar", label: "Automatizar captación de leads" },
+          { value: "otro", label: "Otro" },
+        ],
       },
     ],
   },
@@ -227,8 +256,15 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "perdida_trazabilidad",
         label: "Que problemas te ha causado no tener trazabilidad?",
-        type: "textarea",
-        placeholder: "Ej: Pedidos perdidos, clientes insatisfechos...",
+        type: "select",
+        options: [
+          { value: "pedidos_perdidos", label: "Pedidos perdidos" },
+          { value: "clientes_insatisfechos", label: "Clientes insatisfechos" },
+          { value: "retrasos", label: "Retrasos en entregas" },
+          { value: "perdida_inventario", label: "Pérdida de inventario" },
+          { value: "sin_seguimiento", label: "Falta de seguimiento postventa" },
+          { value: "otro", label: "Otro" },
+        ],
       },
     ],
   },
@@ -251,8 +287,15 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       {
         id: "problema_atencion",
         label: "Cual es tu mayor desafio con la atencion al cliente?",
-        type: "textarea",
-        placeholder: "Ej: Tiempo de respuesta, seguimiento, volumen...",
+        type: "select",
+        options: [
+          { value: "tiempo_respuesta", label: "Tiempo de respuesta lento" },
+          { value: "falta_seguimiento", label: "Falta de seguimiento" },
+          { value: "alto_volumen", label: "Alto volumen de consultas" },
+          { value: "canales_desorganizados", label: "Canales desorganizados" },
+          { value: "clientes_insatisfechos", label: "Clientes insatisfechos" },
+          { value: "otro", label: "Otro" },
+        ],
       },
     ],
   },
@@ -274,46 +317,217 @@ export const ANALYSIS_MESSAGES = [
 // Simulated follow-up questions per industry (Step 3)
 // ============================
 
-export const SIMULATED_QUESTIONS: Record<string, string[]> = {
+export interface SimulatedQuestionWithOptions {
+  question: string
+  options: { value: string; label: string }[]
+}
+
+export const SIMULATED_QUESTIONS: Record<string, SimulatedQuestionWithOptions[]> = {
   restaurante: [
-    "Cuantos pedidos manejan en promedio por dia?",
-    "Tienen un sistema de reservas o delivery propio?",
+    {
+      question: "¿Cuántos pedidos manejan en promedio por día?",
+      options: [
+        { value: "menos_20", label: "Menos de 20" },
+        { value: "20_50", label: "20-50" },
+        { value: "50_100", label: "50-100" },
+        { value: "mas_100", label: "Más de 100" },
+      ],
+    },
+    {
+      question: "¿Tienen un sistema de reservas o delivery propio?",
+      options: [
+        { value: "ambos", label: "Sí, ambos" },
+        { value: "solo_reservas", label: "Solo reservas" },
+        { value: "solo_delivery", label: "Solo delivery" },
+        { value: "no", label: "No tenemos" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   retail: [
-    "Cuantos productos o SKUs manejas aproximadamente?",
-    "Vendes por algun canal online actualmente?",
+    {
+      question: "¿Cuántos productos o SKUs manejas aproximadamente?",
+      options: [
+        { value: "menos_50", label: "Menos de 50" },
+        { value: "50_200", label: "50-200" },
+        { value: "200_1000", label: "200-1,000" },
+        { value: "mas_1000", label: "Más de 1,000" },
+      ],
+    },
+    {
+      question: "¿Vendes por algún canal online actualmente?",
+      options: [
+        { value: "tienda_propia", label: "Sí, tienda propia" },
+        { value: "marketplace", label: "Marketplace (Amazon, MercadoLibre, etc.)" },
+        { value: "redes", label: "Redes sociales" },
+        { value: "no", label: "No vendo online" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   servicios_profesionales: [
-    "Cuantos clientes activos tienes al mes?",
-    "Como gestionas tus citas y seguimiento actualmente?",
+    {
+      question: "¿Cuántos clientes activos tienes al mes?",
+      options: [
+        { value: "menos_10", label: "Menos de 10" },
+        { value: "10_30", label: "10-30" },
+        { value: "30_50", label: "30-50" },
+        { value: "mas_50", label: "Más de 50" },
+      ],
+    },
+    {
+      question: "¿Cómo gestionas tus citas y seguimiento actualmente?",
+      options: [
+        { value: "manual", label: "Manual (papel / correo)" },
+        { value: "calendario", label: "Calendario digital (Google, Outlook)" },
+        { value: "software", label: "Software especializado" },
+        { value: "no_gestiono", label: "No lo gestiono" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   salud: [
-    "Cuantos pacientes atiendes por semana?",
-    "Tienes un sistema de agendamiento digital?",
+    {
+      question: "¿Cuántos pacientes atiendes por semana?",
+      options: [
+        { value: "menos_20", label: "Menos de 20" },
+        { value: "20_50", label: "20-50" },
+        { value: "50_100", label: "50-100" },
+        { value: "mas_100", label: "Más de 100" },
+      ],
+    },
+    {
+      question: "¿Tienes un sistema de agendamiento digital?",
+      options: [
+        { value: "si", label: "Sí, lo uso activamente" },
+        { value: "basico", label: "Tengo uno básico" },
+        { value: "no", label: "No tengo" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   educacion: [
-    "Cuantos alumnos o participantes tienes activos?",
-    "Ofreces cursos online o presenciales?",
+    {
+      question: "¿Cuántos alumnos o participantes tienes activos?",
+      options: [
+        { value: "menos_20", label: "Menos de 20" },
+        { value: "20_50", label: "20-50" },
+        { value: "50_200", label: "50-200" },
+        { value: "mas_200", label: "Más de 200" },
+      ],
+    },
+    {
+      question: "¿Ofreces cursos online o presenciales?",
+      options: [
+        { value: "online", label: "Solo online" },
+        { value: "presencial", label: "Solo presenciales" },
+        { value: "ambos", label: "Ambos" },
+        { value: "planeando", label: "Estoy planeando" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   inmobiliaria: [
-    "Cuantas propiedades manejas actualmente?",
-    "Como gestionas el seguimiento con prospectos?",
+    {
+      question: "¿Cuántas propiedades manejas actualmente?",
+      options: [
+        { value: "menos_10", label: "Menos de 10" },
+        { value: "10_30", label: "10-30" },
+        { value: "30_100", label: "30-100" },
+        { value: "mas_100", label: "Más de 100" },
+      ],
+    },
+    {
+      question: "¿Cómo gestionas el seguimiento con prospectos?",
+      options: [
+        { value: "manual", label: "Manual (Excel / papel)" },
+        { value: "crm", label: "CRM" },
+        { value: "whatsapp", label: "WhatsApp" },
+        { value: "no_gestiono", label: "No lo gestiono" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   tecnologia: [
-    "Que tipo de clientes atienden (B2B o B2C)?",
-    "Cuantos proyectos activos manejan al mismo tiempo?",
+    {
+      question: "¿Qué tipo de clientes atienden (B2B o B2C)?",
+      options: [
+        { value: "b2b", label: "B2B (empresas)" },
+        { value: "b2c", label: "B2C (consumidores)" },
+        { value: "ambos", label: "Ambos" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
+    {
+      question: "¿Cuántos proyectos activos manejan al mismo tiempo?",
+      options: [
+        { value: "menos_5", label: "Menos de 5" },
+        { value: "5_10", label: "5-10" },
+        { value: "10_20", label: "10-20" },
+        { value: "mas_20", label: "Más de 20" },
+      ],
+    },
   ],
   manufactura: [
-    "Cuantas lineas de produccion manejas?",
-    "Tienes control de inventario digitalizado?",
+    {
+      question: "¿Cuántas líneas de producción manejas?",
+      options: [
+        { value: "una", label: "1 línea" },
+        { value: "2_5", label: "2-5 líneas" },
+        { value: "mas_5", label: "Más de 5 líneas" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
+    {
+      question: "¿Tienes control de inventario digitalizado?",
+      options: [
+        { value: "si", label: "Sí, completamente" },
+        { value: "parcial", label: "Parcialmente" },
+        { value: "no", label: "No, todo manual" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   logistica: [
-    "Cuantos envios manejas por semana?",
-    "Tienen sistema de rastreo para sus clientes?",
+    {
+      question: "¿Cuántos envíos manejas por semana?",
+      options: [
+        { value: "menos_50", label: "Menos de 50" },
+        { value: "50_200", label: "50-200" },
+        { value: "200_500", label: "200-500" },
+        { value: "mas_500", label: "Más de 500" },
+      ],
+    },
+    {
+      question: "¿Tienen sistema de rastreo para sus clientes?",
+      options: [
+        { value: "si", label: "Sí, completo" },
+        { value: "basico", label: "Básico" },
+        { value: "no", label: "No tenemos" },
+        { value: "otro", label: "Otro" },
+      ],
+    },
   ],
   otra: [
-    "Cuantas personas interactuan con tus clientes diariamente?",
-    "Que porcentaje de tus procesos estan digitalizados?",
+    {
+      question: "¿Cuántas personas interactúan con tus clientes diariamente?",
+      options: [
+        { value: "1_2", label: "1-2 personas" },
+        { value: "3_5", label: "3-5 personas" },
+        { value: "6_10", label: "6-10 personas" },
+        { value: "mas_10", label: "Más de 10" },
+      ],
+    },
+    {
+      question: "¿Qué porcentaje de tus procesos están digitalizados?",
+      options: [
+        { value: "nada", label: "0% — Todo manual" },
+        { value: "poco", label: "1-25%" },
+        { value: "medio", label: "26-50%" },
+        { value: "bastante", label: "51-75%" },
+        { value: "mucho", label: "76-100%" },
+      ],
+    },
   ],
 }
 

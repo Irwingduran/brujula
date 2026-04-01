@@ -6,7 +6,7 @@ import { getBranchesForPains } from "@/lib/branching"
 import { BUDGET_RANGES, URGENCY_OPTIONS } from "@/lib/constants"
 import type { WizardStep1Data, WizardStep2Data, BudgetRange, Urgency } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { ChevronDown, DollarSign, Clock, User, Mail, Phone, ArrowLeft, ArrowRight, Shield } from "lucide-react"
+import { CaretDown, CurrencyDollar, Clock, User, Envelope, Phone, ArrowLeft, ArrowRight, Shield } from "@phosphor-icons/react"
 
 interface Step2Props {
   step1Data: WizardStep1Data
@@ -120,7 +120,7 @@ export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Pro
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                      <CaretDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
                     {branchAnswers[field.id] === "otro" && (
                       <motion.input
@@ -163,7 +163,7 @@ export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Pro
       <motion.fieldset variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <DollarSign className="h-5 w-5" />
+            <CurrencyDollar className="h-5 w-5" />
           </div>
           <legend className="text-base font-semibold text-foreground">
             ¿Cuál es tu presupuesto mensual estimado?
@@ -254,7 +254,7 @@ export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Pro
           </div>
           <div>
             <label htmlFor="email" className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-              <Mail className="h-4 w-4 text-muted-foreground" />
+              <Envelope className="h-4 w-4 text-muted-foreground" />
               Email
             </label>
             <input

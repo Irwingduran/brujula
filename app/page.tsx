@@ -5,11 +5,10 @@ import { Hero } from "@/components/landing/hero"
 import { Footer } from "@/components/landing/footer"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, Sparkles, Shield, Clock } from "lucide-react"
+import { ArrowRight, Sparkle, Shield } from "@phosphor-icons/react"
 
 const CTA_BENEFITS = [
-  { icon: Sparkles, text: "100% gratuito" },
-  { icon: Clock, text: "Consultoría en tiempo real" },
+  { icon: Sparkle, text: "100% gratuito" },
   { icon: Shield, text: "Sin compromiso" },
 ]
 
@@ -51,16 +50,12 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             className="relative mx-auto max-w-3xl text-center"
           >
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-              <Sparkles className="h-4 w-4" />
-              Únete a +150 negocios transformados
-            </div>
             
             <h2 className="mt-6 text-balance font-sans text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl">
-              ¿Listo para transformar tu negocio?
+              No tienes nada que perder
             </h2>
             <p className="mt-4 text-pretty text-lg text-white/80 md:text-xl">
-              Toma el primer paso hoy. Descubre exactamente qué necesitas para crecer.
+              El diagnóstico es gratis, el plan es tuyo y nadie te va a llamar si no quieres.
             </p>
             
             <div className="mt-8">

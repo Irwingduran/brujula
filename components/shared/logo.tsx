@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Compass } from "lucide-react"
+import { Compass } from "@phosphor-icons/react/dist/ssr"
 
 export function Logo({ className, variant = "dark" }: { className?: string; variant?: "dark" | "light" }) {
   return (

@@ -36,28 +36,28 @@ function scoreCompanySize(size: CompanySize): number {
 }
 
 // Problem clarity scoring — max 15 pts
-// Based on how much detail the user provided in free text fields
+// Based on how many questions the user answered
 function scoreProblemClarity(data: WizardData): number {
-  let totalChars = 0
+  let totalAnswers = 0
 
-  // Count characters from branching answers
+  // Count branching answers
   if (data.step2) {
     for (const value of Object.values(data.step2.respuestas_branch)) {
-      totalChars += (value || "").length
+      if (value && value.trim()) totalAnswers++
     }
   }
 
-  // Count characters from AI follow-up answers
+  // Count AI follow-up answers
   if (data.step3) {
     for (const answer of data.step3.respuestas_ia) {
-      totalChars += (answer || "").length
+      if (answer && answer.trim()) totalAnswers++
     }
   }
 
-  if (totalChars > 200) return 15
-  if (totalChars > 100) return 12
-  if (totalChars > 50) return 8
-  if (totalChars > 20) return 4
+  if (totalAnswers >= 6) return 15
+  if (totalAnswers >= 4) return 12
+  if (totalAnswers >= 2) return 8
+  if (totalAnswers >= 1) return 4
   return 2
 }
 

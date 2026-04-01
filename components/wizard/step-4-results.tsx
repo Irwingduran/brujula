@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
-import { CheckCircle2, Calendar, Mail, TrendingUp, DollarSign, ArrowRight, Sparkles, Trophy, Target } from "lucide-react"
+import { CheckCircle, Calendar, Envelope, TrendUp, CurrencyDollar, ArrowRight, Sparkle, Trophy, Target } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step4Props {
@@ -93,7 +93,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
     COLD: { 
       bg: "bg-gradient-to-br from-blue-500 to-cyan-500", 
       text: "text-white",
-      icon: Sparkles,
+      icon: Sparkle,
       label: "Para nutrir"
     },
   }
@@ -116,7 +116,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
           animate={{ scale: 1 }}
           transition={{ type: "spring", duration: 0.6, delay: 0.2 }}
         >
-          <CheckCircle2 className="h-10 w-10 text-white" />
+          <CheckCircle className="h-10 w-10 text-white" />
         </motion.div>
         <h2 className="mt-6 font-sans text-3xl font-bold text-foreground tracking-tight">
           ¡{nombre}, tu diagnóstico está listo!
@@ -167,7 +167,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
       <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Sparkles className="h-6 w-6" />
+            <Sparkle className="h-6 w-6" />
           </div>
           <div>
             <h3 className="font-sans text-xl font-bold text-foreground">
@@ -201,7 +201,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
               transition={{ delay: 0.8 + i * 0.1 }}
             >
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-white">
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4" />
               </div>
               <span className="text-sm font-medium text-foreground">{b}</span>
             </motion.div>
@@ -214,7 +214,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
         <div className="glass-card rounded-2xl p-6">
           <div className="flex items-center gap-3 text-muted-foreground mb-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-              <TrendingUp className="h-5 w-5" />
+              <TrendUp className="h-5 w-5" />
             </div>
             <span className="font-medium">ROI estimado</span>
           </div>
@@ -223,7 +223,7 @@ export function Step4Results({ diagnosis, score, nombre, leadId }: Step4Props) {
         <div className="glass-card rounded-2xl p-6">
           <div className="flex items-center gap-3 text-muted-foreground mb-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <DollarSign className="h-5 w-5" />
+              <CurrencyDollar className="h-5 w-5" />
             </div>
             <span className="font-medium">Inversión estimada</span>
           </div>

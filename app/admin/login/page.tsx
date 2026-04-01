@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "@/components/shared/logo"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { WarningCircle, SpinnerGap } from "@phosphor-icons/react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
             {error && (
               <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 p-3 rounded-lg">
-                <AlertCircle className="h-4 w-4" />
+                <WarningCircle className="h-4 w-4" />
                 {error}
               </div>
             )}
@@ -89,7 +89,7 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <SpinnerGap className="mr-2 h-4 w-4 animate-spin" />
                   Iniciando sesión...
                 </>
               ) : (

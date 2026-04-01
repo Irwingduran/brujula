@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { ANALYSIS_MESSAGES, SIMULATED_QUESTIONS } from "@/lib/constants"
+import type { SimulatedQuestionWithOptions } from "@/lib/constants"
 import type { WizardStep1Data, WizardStep2Data, WizardStep3Data } from "@/lib/types"
-import { Loader2, Send, Bot, User, Sparkles, ArrowLeft, Check } from "lucide-react"
+import { SpinnerGap, Sparkle, ArrowLeft, ArrowRight, Check, ChatCircle } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step3Props {
@@ -15,73 +16,45 @@ interface Step3Props {
   onBack: () => void
 }
 
-type Phase = "analyzing" | "loading_questions" | "chat" | "done"
+type Phase = "analyzing" | "questions" | "done"
 
-interface ChatMessage {
-  role: "bot" | "user"
-  text: string
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
 }
 
-const messageVariants = {
-  hidden: { opacity: 0, y: 10, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1 },
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
 }
 
 export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }: Step3Props) {
-  const [phase, setPhase] = useState<Phase>(data ? "chat" : "analyzing")
+  const [phase, setPhase] = useState<Phase>(data ? "questions" : "analyzing")
   const [analysisIndex, setAnalysisIndex] = useState(0)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [currentInput, setCurrentInput] = useState("")
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<string[]>(data?.respuestas_ia ?? [])
-  const [questions, setQuestions] = useState<string[]>([])
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [questions, setQuestions] = useState<SimulatedQuestionWithOptions[]>([])
+  const [answers, setAnswers] = useState<Record<number, string>>(
+    data?.respuestas_ia
+      ? data.respuestas_ia.reduce((acc, val, i) => ({ ...acc, [i]: val }), {} as Record<number, string>)
+      : {}
+  )
+  const [otherTexts, setOtherTexts] = useState<Record<number, string>>({})
+  const [errors, setErrors] = useState<Record<number, string>>({})
 
-  // Auto-scroll to bottom
+  // Load questions based on industry
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  // Fetch AI-powered questions
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const res = await fetch("/api/ai/questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step1: step1Data,
-          step2: step2Data,
-        }),
-      })
-      const data = await res.json()
-      if (data.preguntas && data.preguntas.length > 0) {
-        return data.preguntas
-      }
-    } catch (error) {
-      console.error("Error fetching AI questions:", error)
-    }
-    return SIMULATED_QUESTIONS[step1Data.industria] ?? SIMULATED_QUESTIONS.otra
-  }, [step1Data, step2Data])
+    const industryQuestions = SIMULATED_QUESTIONS[step1Data.industria] ?? SIMULATED_QUESTIONS.otra
+    setQuestions(industryQuestions)
+  }, [step1Data.industria])
 
   // Analysis animation
   useEffect(() => {
     if (phase !== "analyzing") return
     if (analysisIndex >= ANALYSIS_MESSAGES.length) {
-      const timer = setTimeout(async () => {
-        setPhase("loading_questions")
-        const aiQuestions = await fetchQuestions()
-        setQuestions(aiQuestions)
-        setPhase("chat")
-        setMessages([
-          {
-            role: "bot",
-            text: "¡Excelente! Ya tengo una buena idea de tu situación. Necesito hacerte un par de preguntas más para afinar tu diagnóstico.",
-          },
-          {
-            role: "bot",
-            text: aiQuestions[0],
-          },
-        ])
+      const timer = setTimeout(() => {
+        setPhase("questions")
       }, 600)
       return () => clearTimeout(timer)
     }
@@ -90,49 +63,66 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
       setAnalysisIndex((i) => i + 1)
     }, 1200)
     return () => clearTimeout(timer)
-  }, [phase, analysisIndex, fetchQuestions])
+  }, [phase, analysisIndex])
 
-  const handleSend = useCallback(() => {
-    if (!currentInput.trim()) return
-
-    const answer = currentInput.trim()
-    const newAnswers = [...answers, answer]
-    setAnswers(newAnswers)
-
-    const newMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", text: answer },
-    ]
-
-    const nextQ = questionIndex + 1
-    if (nextQ < questions.length) {
-      newMessages.push({ role: "bot", text: questions[nextQ] })
-      setQuestionIndex(nextQ)
-      setMessages(newMessages)
-      setCurrentInput("")
-    } else {
-      newMessages.push({
-        role: "bot",
-        text: "¡Perfecto! Ya tengo toda la información que necesito. Estoy preparando tu diagnóstico personalizado...",
+  function selectAnswer(qIndex: number, value: string) {
+    setAnswers((prev) => ({ ...prev, [qIndex]: value }))
+    if (value !== "otro") {
+      setOtherTexts((prev) => {
+        const next = { ...prev }
+        delete next[qIndex]
+        return next
       })
-      setMessages(newMessages)
-      setCurrentInput("")
-      setPhase("done")
-      setTimeout(() => {
-        onComplete({ respuestas_ia: newAnswers })
-      }, 2000)
     }
-  }, [currentInput, answers, messages, questionIndex, questions, onComplete])
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next[qIndex]
+      return next
+    })
+  }
+
+  function updateOtherText(qIndex: number, text: string) {
+    setOtherTexts((prev) => ({ ...prev, [qIndex]: text }))
+  }
+
+  function validate(): boolean {
+    const e: Record<number, string> = {}
+    questions.forEach((_, i) => {
+      if (!answers[i]) {
+        e[i] = "Selecciona una opción"
+      } else if (answers[i] === "otro" && (!otherTexts[i] || !otherTexts[i].trim())) {
+        e[i] = "Especifica tu respuesta"
+      }
+    })
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  function handleSubmit() {
+    if (!validate()) return
+    setPhase("done")
+
+    const finalAnswers = questions.map((q, i) => {
+      if (answers[i] === "otro") {
+        return otherTexts[i]?.trim() ?? ""
+      }
+      const opt = q.options.find((o) => o.value === answers[i])
+      return opt?.label ?? answers[i] ?? ""
+    })
+
+    setTimeout(() => {
+      onComplete({ respuestas_ia: finalAnswers })
+    }, 1500)
+  }
 
   // Analyzing phase
-  if (phase === "analyzing" || phase === "loading_questions") {
+  if (phase === "analyzing") {
     return (
       <motion.div 
         className="flex flex-col items-center justify-center py-20"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        {/* Animated Logo */}
         <motion.div
           className="relative mb-10"
           animate={{ rotate: 360 }}
@@ -140,14 +130,13 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         >
           <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl" />
           <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-xl shadow-primary/30">
-            <Sparkles className="h-10 w-10 text-primary-foreground" />
+            <Sparkle className="h-10 w-10 text-primary-foreground" />
           </div>
         </motion.div>
 
         <h2 className="mb-2 text-2xl font-bold text-foreground">Analizando tu información</h2>
         <p className="mb-8 text-muted-foreground">Esto solo tomará unos segundos...</p>
 
-        {/* Progress Steps */}
         <div className="w-full max-w-sm space-y-3">
           {ANALYSIS_MESSAGES.map((msg, i) => (
             <motion.div
@@ -178,7 +167,7 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
                 {i < analysisIndex ? (
                   <Check className="h-4 w-4" />
                 ) : i === analysisIndex ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <SpinnerGap className="h-4 w-4 animate-spin" />
                 ) : (
                   <span className="text-xs font-medium">{i + 1}</span>
                 )}
@@ -196,131 +185,106 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     )
   }
 
-  // Chat phase
+  // Done phase
+  if (phase === "done") {
+    return (
+      <motion.div 
+        className="flex flex-col items-center justify-center py-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <SpinnerGap className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold text-foreground">Generando tu diagnóstico personalizado...</p>
+      </motion.div>
+    )
+  }
+
+  // Questions phase — selectable options
   return (
     <motion.div 
-      className="flex flex-col gap-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col gap-10"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
     >
       {/* Header */}
-      <div className="text-center lg:text-left">
+      <motion.div variants={itemVariants} className="text-center lg:text-left">
         <h2 className="font-sans text-3xl font-bold text-foreground tracking-tight">
-          Análisis en curso
+          Últimas preguntas
         </h2>
         <p className="mt-2 text-lg text-muted-foreground">
-          Nuestro sistema tiene algunas preguntas adicionales para ti.
+          Selecciona la opción que mejor describa tu situación.
         </p>
-      </div>
+      </motion.div>
 
-      {/* Chat Container */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        {/* Chat Header */}
-        <div className="flex items-center gap-3 border-b border-border/50 bg-primary/5 px-5 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Bot className="h-5 w-5" />
+      {/* Questions */}
+      {questions.map((q, qIndex) => (
+        <motion.fieldset key={qIndex} variants={itemVariants} className="glass-card rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ChatCircle className="h-5 w-5" />
+            </div>
+            <legend className="text-base font-semibold text-foreground">
+              {q.question}
+            </legend>
           </div>
-          <div>
-            <p className="font-semibold text-foreground">Asistente Brújula</p>
-            <p className="text-xs text-muted-foreground">Analizando tu negocio...</p>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-            <span className="text-xs text-muted-foreground">En línea</span>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex flex-col gap-4 p-5 max-h-[400px] overflow-y-auto custom-scrollbar">
-          <AnimatePresence>
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                variants={messageVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ duration: 0.3, delay: i * 0.1 }}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {q.options.map((opt) => (
+              <motion.button
+                key={opt.value}
+                type="button"
+                onClick={() => selectAnswer(qIndex, opt.value)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={cn(
-                  "flex items-end gap-3",
-                  msg.role === "user" && "flex-row-reverse"
+                  "rounded-xl border-2 px-4 py-3.5 text-left text-sm font-semibold transition-all duration-200",
+                  answers[qIndex] === opt.value
+                    ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "border-border bg-white text-foreground hover:border-primary/50 hover:shadow-md"
                 )}
               >
-                <div className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                  msg.role === "bot" 
-                    ? "bg-primary/10 text-primary" 
-                    : "bg-accent text-accent-foreground"
-                )}>
-                  {msg.role === "bot" ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                </div>
-                <div className={cn(
-                  "max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                  msg.role === "bot"
-                    ? "bg-muted text-foreground rounded-bl-md"
-                    : "bg-primary text-primary-foreground rounded-br-md"
-                )}>
-                  {msg.text}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {phase === "done" && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-center py-4 gap-3"
-            >
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">
-                Generando tu diagnóstico personalizado...
-              </span>
-            </motion.div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        {phase === "chat" && (
-          <div className="border-t border-border/50 p-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Escribe tu respuesta..."
-                className="flex-1 rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-              />
-              <motion.button
-                type="button"
-                onClick={handleSend}
-                disabled={!currentInput.trim()}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl disabled:opacity-50 disabled:shadow-none"
-              >
-                <Send className="h-5 w-5" />
-                <span className="sr-only">Enviar</span>
+                {opt.label}
               </motion.button>
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+          {answers[qIndex] === "otro" && (
+            <motion.input
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              type="text"
+              value={otherTexts[qIndex] ?? ""}
+              onChange={(e) => updateOtherText(qIndex, e.target.value)}
+              placeholder="Especifica tu respuesta..."
+              className="mt-3 w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+            />
+          )}
+          {errors[qIndex] && <p className="mt-2 text-sm text-destructive font-medium">{errors[qIndex]}</p>}
+        </motion.fieldset>
+      ))}
 
-      {/* Back button */}
-      {phase === "chat" && (
+      {/* Actions */}
+      <motion.div variants={itemVariants} className="flex flex-col gap-3 sm:flex-row sm:justify-between">
         <motion.button
           type="button"
           onClick={onBack}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="group flex items-center gap-2 self-start rounded-xl border-2 border-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-primary/50 hover:shadow-md"
+          className="group flex items-center gap-2 rounded-xl border-2 border-border bg-white px-6 py-3.5 text-sm font-semibold text-foreground transition-all hover:border-primary/50 hover:shadow-md"
         >
           <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Atrás
         </motion.button>
-      )}
+        <motion.button
+          type="button"
+          onClick={handleSubmit}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="group flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+        >
+          Ver mi diagnóstico
+          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+        </motion.button>
+      </motion.div>
     </motion.div>
   )
 }
