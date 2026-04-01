@@ -2,7 +2,7 @@ import { WizardShell } from "@/components/wizard/wizard-shell"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Diagnostico Digital Gratuito | NexoDigital",
+  title: "Diagnóstico Digital Gratuito | Brújula",
   description: "Responde algunas preguntas sobre tu negocio y recibe un plan personalizado para digitalizarte y crecer.",
 }
 

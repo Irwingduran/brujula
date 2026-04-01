@@ -2,14 +2,14 @@ import { prisma } from "@/lib/prisma"
 import { Logo } from "@/components/shared/logo"
 import { Footer } from "@/components/landing/footer"
 import { TrackingPixel } from "@/components/shared/tracking-pixel"
-import { CheckCircle2, Calendar, TrendingUp, DollarSign, ArrowRight, Phone, Mail as MailIcon } from "lucide-react"
+import { CheckCircle, Calendar, TrendUp, CurrencyDollar, ArrowRight, Phone, Envelope } from "@phosphor-icons/react/dist/ssr"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
 
 export const metadata: Metadata = {
-  title: "Tu Propuesta Personalizada | NexoDigital",
+  title: "Tu Propuesta Personalizada | Brújula",
   description: "Revisa tu diagnostico y propuesta personalizada para digitalizar tu negocio.",
 }
 
@@ -64,7 +64,7 @@ export default async function ResultadoPage({
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
-            <CheckCircle2 className="h-7 w-7 text-accent" />
+            <CheckCircle className="h-7 w-7 text-accent" />
           </div>
           <h1 className="mt-4 font-sans text-3xl font-bold text-foreground md:text-4xl">
             {`Propuesta para ${lead.nombre}`}
@@ -110,7 +110,7 @@ export default async function ResultadoPage({
             <div className="flex flex-col gap-3">
               {diagnosis.beneficios.map((b) => (
                 <div key={b} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                   <span className="text-sm text-card-foreground">{b}</span>
                 </div>
               ))}
@@ -121,14 +121,14 @@ export default async function ResultadoPage({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <TrendingUp className="h-4 w-4" />
+                <TrendUp className="h-4 w-4" />
                 ROI estimado
               </div>
               <p className="mt-2 text-sm font-semibold text-card-foreground">{diagnosis.roi_estimado}</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <DollarSign className="h-4 w-4" />
+                <CurrencyDollar className="h-4 w-4" />
                 Inversion estimada
               </div>
               <p className="mt-2 text-sm font-semibold text-card-foreground">{diagnosis.precio_rango}</p>
@@ -159,7 +159,7 @@ export default async function ResultadoPage({
                 {lead.telefono}
               </span>
               <span className="flex items-center gap-1">
-                <MailIcon className="h-3 w-3" />
+                <Envelope className="h-3 w-3" />
                 {lead.email}
               </span>
             </div>

@@ -5,7 +5,7 @@ import type { Lead, PipelineStage } from "@/lib/types"
 import { PIPELINE_STAGES, INDUSTRIES, PAIN_POINTS, COMPANY_SIZES, BUDGET_RANGES, URGENCY_OPTIONS } from "@/lib/constants"
 import { ScoreBadge } from "./score-badge"
 import { cn } from "@/lib/utils"
-import { ArrowLeft, Mail, Phone, Building2, Calendar, Save } from "lucide-react"
+import { ArrowLeft, Envelope, Phone, Buildings, Calendar, FloppyDisk } from "@phosphor-icons/react"
 import Link from "next/link"
 import useSWR, { mutate } from "swr"
 
@@ -81,7 +81,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
           <h1 className="font-sans text-2xl font-bold text-foreground">{lead.nombre}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Mail className="h-3.5 w-3.5" />
+              <Envelope className="h-3.5 w-3.5" />
               {lead.email}
             </span>
             <span className="flex items-center gap-1">
@@ -89,7 +89,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               {lead.telefono}
             </span>
             <span className="flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5" />
+              <Buildings className="h-3.5 w-3.5" />
               {getLabel(lead.industria, [...INDUSTRIES])}
             </span>
           </div>
@@ -258,7 +258,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               disabled={saving}
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              <Save className="h-3 w-3" />
+              <FloppyDisk className="h-3 w-3" />
               {saving ? "Guardando..." : "Guardar notas"}
             </button>
           </div>

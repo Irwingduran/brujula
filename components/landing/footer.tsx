@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Logo } from "@/components/shared/logo"
-import { Mail, MapPin } from "lucide-react"
+import { Envelope, MapPin } from "@phosphor-icons/react/dist/ssr"
 
 export function Footer() {
   return (
@@ -11,7 +11,7 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <Logo />
             <p className="max-w-xs text-sm text-muted-foreground">
-              Tu brújula hacia el éxito digital. Diagnósticos personalizados para impulsar tu negocio.
+              Te mostramos el camino. Tú decides cuándo avanzar: IA diagnostica, expertos ejecutan.
             </p>
           </div>
           
@@ -22,18 +22,18 @@ export function Footer() {
               <Link href="/diagnostico" className="transition-colors hover:text-foreground">
                 Diagnóstico
               </Link>
-              <span className="cursor-pointer hover:text-foreground">Política de privacidad</span>
+              <Link href="/privacidad" className="transition-colors hover:text-foreground">Aviso de privacidad</Link>
             </div>
           </div>
           
           {/* Contact */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-sm font-semibold text-foreground">Contacto</h4>
+            <h4 className="text-sm font-semibold text-foreground">Hablar directo con un experto</h4>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
+              <a href="mailto:hola@somosbrujula.com.mx" className="flex items-center gap-2 transition-colors hover:text-foreground">
+                <Envelope className="h-4 w-4" />
                 <span>hola@somosbrujula.com.mx</span>
-              </div>
+              </a>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 <span>México</span>

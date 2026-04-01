@@ -1,5 +1,5 @@
 import type { Lead } from "@/lib/types"
-import { Users, TrendingUp, Flame, Thermometer } from "lucide-react"
+import { UsersThree, TrendUp, Flame, Thermometer } from "@phosphor-icons/react/dist/ssr"
 
 interface MetricsCardsProps {
   leads: Lead[]
@@ -15,8 +15,8 @@ export function MetricsCards({ leads }: MetricsCardsProps) {
   const callsScheduled = leads.filter((l) => l.estado_pipeline === "llamada_agendada").length
 
   const cards = [
-    { label: "Total Leads", value: totalLeads, icon: Users, color: "text-primary" },
-    { label: "Score Promedio", value: avgScore, icon: TrendingUp, color: "text-accent" },
+    { label: "Total Leads", value: totalLeads, icon: UsersThree, color: "text-primary" },
+    { label: "Score Promedio", value: avgScore, icon: TrendUp, color: "text-accent" },
     { label: "Leads HOT", value: hotCount, icon: Flame, color: "text-red-500" },
     { label: "Llamadas Agendadas", value: callsScheduled, icon: Thermometer, color: "text-amber-500" },
   ]

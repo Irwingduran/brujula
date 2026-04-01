@@ -4,7 +4,7 @@ import { INDUSTRIES, COMPANY_SIZES, PAIN_POINTS, CURRENT_TOOLS } from "@/lib/con
 import type { WizardStep1Data, PainPoint, CompanySize, CurrentTool } from "@/lib/types"
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Check, ChevronDown, Building2, Users, AlertTriangle, Wrench, ArrowRight } from "lucide-react"
+import { Check, CaretDown, Buildings, UsersThree, Warning, Wrench, ArrowRight } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step1Props {
@@ -95,7 +95,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       <motion.fieldset variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Building2 className="h-5 w-5" />
+            <Buildings className="h-5 w-5" />
           </div>
           <legend className="text-base font-semibold text-foreground">
             ¿En qué industria opera tu negocio?
@@ -112,7 +112,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
               <option key={i.value} value={i.value}>{i.label}</option>
             ))}
           </select>
-          <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <CaretDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         </div>
         {industria === "otra" && (
           <motion.input
@@ -133,7 +133,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       <motion.fieldset variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Users className="h-5 w-5" />
+            <UsersThree className="h-5 w-5" />
           </div>
           <legend className="text-base font-semibold text-foreground">
             ¿Cuántas personas trabajan en tu empresa?
@@ -165,7 +165,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       <motion.fieldset variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <AlertTriangle className="h-5 w-5" />
+            <Warning className="h-5 w-5" />
           </div>
           <div>
             <legend className="text-base font-semibold text-foreground">

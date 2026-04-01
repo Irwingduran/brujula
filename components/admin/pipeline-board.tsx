@@ -6,7 +6,7 @@ import { PIPELINE_STAGES, INDUSTRIES } from "@/lib/constants"
 import { ScoreBadge } from "./score-badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { GripVertical, Filter } from "lucide-react"
+import { DotsSixVertical, Funnel } from "@phosphor-icons/react"
 import useSWR, { mutate } from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -29,7 +29,7 @@ function LeadCard({ lead }: { lead: Lead }) {
           <div className="text-sm font-medium text-card-foreground">{lead.nombre}</div>
           <div className="text-xs text-muted-foreground">{industryLabel}</div>
         </div>
-        <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <DotsSixVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
       {lead.score && <ScoreBadge score={lead.score.total} segment={lead.segmento} />}
       <div className="text-xs text-muted-foreground">
@@ -117,7 +117,7 @@ export function PipelineBoard() {
     <div className="flex flex-col gap-4">
       {/* Filters */}
       <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
+        <Funnel className="h-4 w-4 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">Filtrar:</span>
         {(["ALL", "HOT", "WARM", "COLD"] as const).map((seg) => (
           <button

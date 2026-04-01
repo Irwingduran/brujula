@@ -3,12 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { LayoutDashboard, Columns3, Flame, ExternalLink, LogOut } from "lucide-react"
+import { SquaresFour, Columns, Flame, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/pipeline", label: "Pipeline", icon: Columns3 },
+  { href: "/admin", label: "Dashboard", icon: SquaresFour },
+  { href: "/admin/pipeline", label: "Pipeline", icon: Columns },
 ]
 
 export function AdminSidebar() {
@@ -71,14 +71,14 @@ export function AdminSidebar() {
           href="/"
           className="flex items-center gap-2 rounded-md px-3 py-2 text-xs text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
         >
-          <ExternalLink className="h-3 w-3" />
+          <ArrowSquareOut className="h-3 w-3" />
           Ver landing page
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
           className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-sidebar-foreground/50 transition-colors hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
         >
-          <LogOut className="h-3 w-3" />
+          <SignOut className="h-3 w-3" />
           Cerrar sesión
         </button>
       </div>
