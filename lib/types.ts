@@ -72,6 +72,21 @@ export interface WizardStep3Data {
   respuestas_ia: string[]
 }
 
+export interface AIQuestionOption {
+  value: string
+  label: string
+}
+
+export interface AIQuestion {
+  question: string
+  options: AIQuestionOption[]
+}
+
+export interface AIQuestionsResponse {
+  questions: AIQuestion[]
+  hasMoreQuestions: boolean
+}
+
 export interface WizardData {
   step1: WizardStep1Data | null
   step2: WizardStep2Data | null
@@ -104,6 +119,28 @@ export interface DiagnosisResult {
   precio_rango: string
   beneficios: string[]
   siguiente_paso: string
+}
+
+export interface AIDiagnosisResult {
+  // Diagnosis content (replaces static templates)
+  titulo_servicio: string
+  descripcion: string
+  diagnostico_texto: string
+  beneficios: string[]
+  siguiente_paso: string
+  // Personalized insights
+  resumen_personalizado: string
+  tiempo_ahorro: string
+  pasos_accion: string[]
+  dato_industria: string
+  // Success story
+  caso_exito: {
+    empresa: string
+    industria: string
+    problema: string
+    solucion: string
+    resultado: string
+  }
 }
 
 // ============================
