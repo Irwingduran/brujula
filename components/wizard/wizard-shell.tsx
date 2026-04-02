@@ -269,6 +269,7 @@ export function WizardShell() {
                     score={score}
                     nombre={wizardData.step2.nombre}
                     leadId={leadId}
+                    wizardData={wizardData}
                   />
                 )}
               </motion.div>

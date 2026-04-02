@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { ANALYSIS_MESSAGES, SIMULATED_QUESTIONS } from "@/lib/constants"
-import type { SimulatedQuestionWithOptions } from "@/lib/constants"
-import type { WizardStep1Data, WizardStep2Data, WizardStep3Data } from "@/lib/types"
+import { ANALYSIS_MESSAGES } from "@/lib/constants"
+import type { WizardStep1Data, WizardStep2Data, WizardStep3Data, AIQuestion, AIQuestionsResponse } from "@/lib/types"
 import { SpinnerGap, Sparkle, ArrowLeft, ArrowRight, Check, ChatCircle } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
@@ -16,45 +15,55 @@ interface Step3Props {
   onBack: () => void
 }
 
-type Phase = "analyzing" | "questions" | "done"
+type Phase = "analyzing" | "loading-questions" | "questions" | "loading-next" | "done"
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
+interface AnsweredRound {
+  questions: AIQuestion[]
+  answers: { question: string; answer: string }[]
 }
 
 export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }: Step3Props) {
   const [phase, setPhase] = useState<Phase>(data ? "questions" : "analyzing")
   const [analysisIndex, setAnalysisIndex] = useState(0)
-  const [questions, setQuestions] = useState<SimulatedQuestionWithOptions[]>([])
-  const [answers, setAnswers] = useState<Record<number, string>>(
-    data?.respuestas_ia
-      ? data.respuestas_ia.reduce((acc, val, i) => ({ ...acc, [i]: val }), {} as Record<number, string>)
-      : {}
-  )
+
+  // Round management
+  const [currentRound, setCurrentRound] = useState(1)
+  const [completedRounds, setCompletedRounds] = useState<AnsweredRound[]>([])
+  const [hasMoreQuestions, setHasMoreQuestions] = useState(true)
+
+  // Current round questions
+  const [questions, setQuestions] = useState<AIQuestion[]>([])
+  const [answers, setAnswers] = useState<Record<number, string>>({})
   const [otherTexts, setOtherTexts] = useState<Record<number, string>>({})
   const [errors, setErrors] = useState<Record<number, string>>({})
+  const fetchedRoundRef = useRef(0)
 
-  // Load questions based on industry
-  useEffect(() => {
-    const industryQuestions = SIMULATED_QUESTIONS[step1Data.industria] ?? SIMULATED_QUESTIONS.otra
-    setQuestions(industryQuestions)
-  }, [step1Data.industria])
+  // Fetch questions for a round
+  const fetchQuestions = useCallback(async (round: number, previousAnswers: { question: string; answer: string }[]) => {
+    try {
+      const res = await fetch("/api/ai/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step1: step1Data,
+          step2: step2Data,
+          round,
+          previousAnswers,
+        }),
+      })
+      const data: AIQuestionsResponse = await res.json()
+      return data
+    } catch {
+      return null
+    }
+  }, [step1Data, step2Data])
 
   // Analysis animation
   useEffect(() => {
     if (phase !== "analyzing") return
     if (analysisIndex >= ANALYSIS_MESSAGES.length) {
       const timer = setTimeout(() => {
-        setPhase("questions")
+        setPhase("loading-questions")
       }, 600)
       return () => clearTimeout(timer)
     }
@@ -64,6 +73,30 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     }, 1200)
     return () => clearTimeout(timer)
   }, [phase, analysisIndex])
+
+  // Fetch first round of questions after analysis
+  useEffect(() => {
+    if (phase !== "loading-questions") return
+    if (fetchedRoundRef.current >= currentRound) return
+    fetchedRoundRef.current = currentRound
+
+    fetchQuestions(currentRound, getAllPreviousAnswers()).then((result) => {
+      if (result?.questions?.length) {
+        setQuestions(result.questions)
+        setHasMoreQuestions(result.hasMoreQuestions)
+      } else {
+        // Fallback — skip to done
+        setPhase("done")
+        setTimeout(() => onComplete({ respuestas_ia: [] }), 1500)
+        return
+      }
+      setPhase("questions")
+    })
+  }, [phase, currentRound])
+
+  function getAllPreviousAnswers(): { question: string; answer: string }[] {
+    return completedRounds.flatMap((r) => r.answers)
+  }
 
   function selectAnswer(qIndex: number, value: string) {
     setAnswers((prev) => ({ ...prev, [qIndex]: value }))
@@ -98,27 +131,67 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     return Object.keys(e).length === 0
   }
 
-  function handleSubmit() {
-    if (!validate()) return
-    setPhase("done")
-
-    const finalAnswers = questions.map((q, i) => {
+  function getCurrentRoundAnswers(): { question: string; answer: string }[] {
+    return questions.map((q, i) => {
+      let answerLabel: string
       if (answers[i] === "otro") {
-        return otherTexts[i]?.trim() ?? ""
+        answerLabel = otherTexts[i]?.trim() ?? ""
+      } else {
+        const opt = q.options.find((o) => o.value === answers[i])
+        answerLabel = opt?.label ?? answers[i] ?? ""
       }
-      const opt = q.options.find((o) => o.value === answers[i])
-      return opt?.label ?? answers[i] ?? ""
+      return { question: q.question, answer: answerLabel }
     })
+  }
 
+  async function handleContinue() {
+    if (!validate()) return
+
+    const roundAnswers = getCurrentRoundAnswers()
+    const updatedRounds = [...completedRounds, { questions, answers: roundAnswers }]
+    setCompletedRounds(updatedRounds)
+
+    if (hasMoreQuestions && currentRound < 2) {
+      // Load next round (max 2)
+      setPhase("loading-next")
+      const nextRound = currentRound + 1
+      setCurrentRound(nextRound)
+      setAnswers({})
+      setOtherTexts({})
+      setErrors({})
+      fetchedRoundRef.current = nextRound
+
+      const allPrevAnswers = updatedRounds.flatMap((r) => r.answers)
+      const result = await fetchQuestions(nextRound, allPrevAnswers)
+
+      if (result?.questions?.length) {
+        setQuestions(result.questions)
+        setHasMoreQuestions(result.hasMoreQuestions)
+        setPhase("questions")
+        window.scrollTo({ top: 0, behavior: "smooth" })
+      } else {
+        // No more questions, finish
+        finishWithAnswers(allPrevAnswers)
+      }
+    } else {
+      // Final round done
+      const allAnswers = updatedRounds.flatMap((r) => r.answers)
+      finishWithAnswers(allAnswers)
+    }
+  }
+
+  function finishWithAnswers(allAnswers: { question: string; answer: string }[]) {
+    setPhase("done")
+    const labels = allAnswers.map((a) => `${a.question}: ${a.answer}`)
     setTimeout(() => {
-      onComplete({ respuestas_ia: finalAnswers })
+      onComplete({ respuestas_ia: labels })
     }, 1500)
   }
 
-  // Analyzing phase
+  // ─── Analyzing Phase ───
   if (phase === "analyzing") {
     return (
-      <motion.div 
+      <motion.div
         className="flex flex-col items-center justify-center py-20"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -142,26 +215,26 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
             <motion.div
               key={msg}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ 
+              animate={{
                 opacity: i <= analysisIndex ? 1 : 0.3,
-                x: 0 
+                x: 0,
               }}
               transition={{ delay: i * 0.1, duration: 0.3 }}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
-                i < analysisIndex 
-                  ? "bg-accent/10" 
-                  : i === analysisIndex 
-                    ? "bg-primary/10" 
+                i < analysisIndex
+                  ? "bg-accent/10"
+                  : i === analysisIndex
+                    ? "bg-primary/10"
                     : "bg-muted/30"
               )}
             >
               <div className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all",
-                i < analysisIndex 
-                  ? "bg-accent text-accent-foreground" 
-                  : i === analysisIndex 
-                    ? "bg-primary text-primary-foreground" 
+                i < analysisIndex
+                  ? "bg-accent text-accent-foreground"
+                  : i === analysisIndex
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground"
               )}>
                 {i < analysisIndex ? (
@@ -185,10 +258,37 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     )
   }
 
-  // Done phase
+  // ─── Loading Questions Phase ───
+  if (phase === "loading-questions" || phase === "loading-next") {
+    return (
+      <motion.div
+        className="flex flex-col items-center justify-center py-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <motion.div
+          className="relative mb-6"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        >
+          <SpinnerGap className="h-12 w-12 text-primary" />
+        </motion.div>
+        <p className="text-lg font-semibold text-foreground">
+          {phase === "loading-next"
+            ? "Analizando tus respuestas para profundizar..."
+            : "Preparando preguntas personalizadas..."}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Nuestra IA está adaptando las preguntas a tu caso específico
+        </p>
+      </motion.div>
+    )
+  }
+
+  // ─── Done Phase ───
   if (phase === "done") {
     return (
-      <motion.div 
+      <motion.div
         className="flex flex-col items-center justify-center py-20"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -199,27 +299,49 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     )
   }
 
-  // Questions phase — selectable options
+  // ─── Questions Phase ───
+  const totalAnswered = completedRounds.reduce((sum, r) => sum + r.answers.length, 0)
+
   return (
-    <motion.div 
-      className="flex flex-col gap-10"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="flex flex-col gap-8">
       {/* Header */}
-      <motion.div variants={itemVariants} className="text-center lg:text-left">
-        <h2 className="font-sans text-3xl font-bold text-foreground tracking-tight">
-          Últimas preguntas
-        </h2>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Selecciona la opción que mejor describa tu situación.
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="text-center lg:text-left"
+      >
+        <div className="flex items-center justify-center gap-3 lg:justify-start mb-2">
+          <h2 className="font-sans text-3xl font-bold text-foreground tracking-tight">
+            {currentRound === 1 ? "Cuéntanos más sobre tu caso" : "Profundicemos un poco más"}
+          </h2>
+        </div>
+        <p className="text-lg text-muted-foreground">
+          {currentRound === 1
+            ? "Selecciona la opción que mejor describa tu situación."
+            : "Basándonos en tus respuestas, necesitamos algunos detalles más."}
         </p>
+        {/* Round indicator */}
+        <div className="mt-3 flex items-center justify-center gap-2 lg:justify-start">
+          <span className="text-xs font-medium text-muted-foreground">
+            Ronda {currentRound} de 2
+          </span>
+          <span className="text-xs text-muted-foreground">·</span>
+          <span className="text-xs font-medium text-accent">
+            {totalAnswered + Object.keys(answers).length} respuestas recopiladas
+          </span>
+        </div>
       </motion.div>
 
       {/* Questions */}
       {questions.map((q, qIndex) => (
-        <motion.fieldset key={qIndex} variants={itemVariants} className="glass-card rounded-2xl p-6">
+        <motion.fieldset
+          key={`r${currentRound}-q${qIndex}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: qIndex * 0.12 }}
+          className="glass-card rounded-2xl p-6"
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <ChatCircle className="h-5 w-5" />
@@ -263,7 +385,12 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
       ))}
 
       {/* Actions */}
-      <motion.div variants={itemVariants} className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: questions.length * 0.12 + 0.1 }}
+        className="flex flex-col gap-3 sm:flex-row sm:justify-between"
+      >
         <motion.button
           type="button"
           onClick={onBack}
@@ -276,15 +403,15 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         </motion.button>
         <motion.button
           type="button"
-          onClick={handleSubmit}
+          onClick={handleContinue}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="group flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
         >
-          Ver mi diagnóstico
+          {hasMoreQuestions ? "Continuar" : "Ver mi diagnóstico"}
           <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
         </motion.button>
       </motion.div>
-    </motion.div>
+    </div>
   )
 }

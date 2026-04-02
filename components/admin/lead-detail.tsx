@@ -222,6 +222,25 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
             </div>
           </div>
 
+          {/* Quick actions */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-3 text-sm font-semibold text-card-foreground">Acciones rápidas</h2>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handlePipelineChange("cerrado")}
+                className="rounded-lg bg-emerald-50 px-3 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Marcar como cerrado
+              </button>
+              <button
+                onClick={() => handlePipelineChange("archivado")}
+                className="rounded-lg bg-zinc-50 px-3 py-2 text-left text-xs font-semibold text-zinc-700 hover:bg-zinc-100"
+              >
+                Archivar lead
+              </button>
+            </div>
+          </div>
+
           {/* Dates */}
           <div className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold text-card-foreground">Fechas</h2>
