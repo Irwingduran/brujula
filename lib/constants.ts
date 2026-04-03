@@ -71,6 +71,321 @@ export const PAIN_POINTS: { value: PainPoint; label: string; description: string
   },
 ]
 
+// Industry to recommended pain points
+export const INDUSTRY_PAIN_SUGGESTIONS: Record<string, PainPoint[]> = {
+  restaurante: ["sin_trazabilidad", "atencion_cliente", "ventas_estancadas", "presencia_online"],
+  retail: ["sin_trazabilidad", "ventas_estancadas", "presencia_online", "falta_visibilidad"],
+  servicios_profesionales: ["falta_visibilidad", "atencion_cliente", "presencia_online"],
+  salud: ["atencion_cliente", "falta_visibilidad", "sin_trazabilidad"],
+  educacion: ["falta_visibilidad", "ventas_estancadas", "presencia_online"],
+  inmobiliaria: ["ventas_estancadas", "falta_visibilidad", "sin_trazabilidad"],
+  tecnologia: ["procesos_manuales", "falta_visibilidad", "presencia_online"],
+  manufactura: ["procesos_manuales", "sin_trazabilidad", "falta_visibilidad"],
+  logistica: ["sin_trazabilidad", "procesos_manuales", "falta_visibilidad"],
+  otra: [],
+}
+
+export const INDUSTRY_PAIN_HINTS: Record<string, string[]> = {
+  restaurante: [
+    "Pérdidas por pedidos mal rastreados y administración de inventario dispersa.",
+    "Atención al cliente lenta en servicios de entrega y recogida.",
+    "Ventas estancadas en horarios no pico por falta de fidelización."
+  ],
+  retail: [
+    "Control de inventario manual con errores frecuentes.",
+    "Dificultad para captar clientes online frente a competencia de marketplace.",
+    "Falta de métricas claras para decidir reposición de stock."
+  ],
+  servicios_profesionales: [
+    "Seguimiento de clientes puntual es inconsistente y manual.",
+    "Falta de visibilidad sobre proyectos y tiempos facturables.",
+    "Poca presencia digital para atraer leads de alta calidad."
+  ],
+  salud: [
+    "No hay proceso claro para seguimiento de pacientes y citas.",
+    "Dificultad para medir satisfacción y retención de pacientes.",
+    "Operaciones dispersas sin trazabilidad de tratamientos."
+  ],
+  educacion: [
+    "Estructura de marketing online débil y baja conversión de alumnos.",
+    "Información de estudiantes en hojas de cálculo, sin seguimiento.",
+    "Sin visibilidad de operaciones de cursos y pagos recurrentes."
+  ],
+  inmobiliaria: [
+    "Reporte de leads y avisos no centralizado en un solo lugar.",
+    "Poco seguimiento a clientes potenciales y ausente CRM.",
+    "Falta de visibilidad en KPIs de ventas y comisiones."
+  ],
+  tecnologia: [
+    "Procesos internos manuales y poca automatización de proyectos.",
+    "Falta de visibilidad de indicadores de producto y retención.",
+    "Presencia online que no refleja la capacidad de soluciones avanzadas."
+  ],
+  manufactura: [
+    "Trazabilidad parcial de inventario y unidades en producción.",
+    "Alto tiempo en procesos manuales de órdenes y logística.",
+    "Desconocimiento del rendimiento de maquinaria y costos operativos."
+  ],
+  logistica: [
+    "Sin visibilidad en tiempo real de entregas y rutas.",
+    "Procesos manuales de seguimiento de paquetes y comunicación.",
+    "Falta de métricas para mejorar tiempos de entrega y costos."
+  ],
+  otra: [
+    "Identifica los principales cuellos de botella con datos claros.",
+    "Mejora la atención al cliente y automatiza procesos repetitivos.",
+    "Define métricas clave para convertir esfuerzos en resultados."
+  ],
+}
+
+export const INDUSTRY_PAIN_OVERRIDES: Record<
+  string,
+  Partial<Record<PainPoint, { label: string; description: string }>>
+> = {
+  restaurante: {
+    procesos_manuales: {
+      label: "Manos envueltas en procesos manuales",
+      description: "Mucho tiempo en facturación, inventario y coordinación de entregas manuales.",
+    },
+    falta_visibilidad: {
+      label: "Falta de visibilidad en operaciones y pedidos",
+      description: "No tienes datos actualizados de ventas y estado de pedidos en tiempo real.",
+    },
+    ventas_estancadas: {
+      label: "Ventas estancadas en horarios clave",
+      description: "Dificultad para activar promociones y retener clientes recurrentes.",
+    },
+    presencia_online: {
+      label: "Presencia online ineficiente",
+      description: "La oferta digital no traslada las ventajas del restaurante a canales web o delivery.",
+    },
+    sin_trazabilidad: {
+      label: "Problemas de trazabilidad de pedidos",
+      description: "Pérdida y errores en pedidos, devoluciones y control de stock.",
+    },
+    atencion_cliente: {
+      label: "Atención a cliente lenta y reactiva",
+      description: "No puedes responder rápidamente a quejas, cambios y consultas de pedidos.",
+    },
+  },
+  retail: {
+    procesos_manuales: {
+      label: "Procesos de inventario y reposición manuales",
+      description: "Altos retrasos y errores en el recuento y movimiento de stock.",
+    },
+    falta_visibilidad: {
+      label: "Visibilidad limitada de stock y ventas",
+      description: "No observas en tiempo real qué productos se venden mejor.",
+    },
+    ventas_estancadas: {
+      label: "Ventas planas frente a competencia online",
+      description: "No logras aumentar ticket promedio ni recurrencia de clientes.",
+    },
+    presencia_online: {
+      label: "Presencia digital débil",
+      description: "Tu tienda tiene baja conversión en canales web y redes.",
+    },
+    sin_trazabilidad:
+      {
+        label: "Trazabilidad inconsistente de pedidos y clientes",
+        description: "No sabes de dónde vienen los mejores clientes ni qué productos más se repiten.",
+      },
+    atencion_cliente:
+      {
+        label: "Seguimiento al cliente fragmentado",
+        description: "No hay un historial de interacción unificado para mejorar fidelización.",
+      },
+  },
+  servicios_profesionales: {
+    procesos_manuales: {
+      label: "Tareas administrativas repetitivas",
+      description: "Mucho tiempo invertido en cotizaciones, facturas y seguimiento personal.",
+    },
+    falta_visibilidad: {
+      label: "Falta de claridad en métricas de proyectos",
+      description: "No puedes medir horas trabajadas ni estado real de clientes fácilmente.",
+    },
+    ventas_estancadas: {
+      label: "Crecimiento de clientes lento",
+      description: "Dificultad para convertir consultas en contratos regulares.",
+    },
+    presencia_online: {
+      label: "Presencia digital que no vende",
+      description: "Tu posicionamiento profesional no se traduce en leads cualificados.",
+    },
+    sin_trazabilidad: {
+      label: "Sin registro de interacciones",
+      description: "No se tiene trazabilidad de entregables y atención conjunta con el cliente.",
+    },
+    atencion_cliente: {
+      label: "No hay seguimiento de casos",
+      description: "No puedes mantener piezas de comunicación centralizada con cada cliente.",
+    },
+  },
+  salud: {
+    procesos_manuales: {
+      label: "Tareas de agenda y expedientes manuales",
+      description: "Gran carga en administración de citas y recetas físicas.",
+    },
+    falta_visibilidad: {
+      label: "Visibilidad insuficiente de pacientes",
+      description: "No ves rápidamente historial, citas y estado de atención.",
+    },
+    ventas_estancadas: {
+      label: "Crecimiento de pacientes lento",
+      description: "No atraes nuevos pacientes ni retienes los existentes de forma consistente.",
+    },
+    presencia_online: {
+      label: "Presencia online poco clara",
+      description: "No se comunica correctamente la propuesta de valor médica.",
+    },
+    sin_trazabilidad: {
+      label: "Falta de trazabilidad de tratamientos",
+      description: "Dificultad para rastrear procesos, remedios y resultados por paciente.",
+    },
+    atencion_cliente: {
+      label: "Atención al paciente lenta",
+      description: "No responde a urgencias, consultas y seguimientos con celeridad.",
+    },
+  },
+  educacion: {
+    procesos_manuales: {
+      label: "Inscripciones y control con hojas de cálculo",
+      description: "Demasiado tiempo en manejar listas, cobros y rotación de cursos.",
+    },
+    falta_visibilidad: {
+      label: "Falta de datos de rendimiento académico",
+      description: "No mides participación, tasas de aprobación ni abandono con claridad.",
+    },
+    ventas_estancadas: {
+      label: "Estancamiento de matrículas",
+      description: "No crece el número de estudiantes ni se retiene a los actuales.",
+    },
+    presencia_online: {
+      label: "Marketing digital limitado",
+      description: "Tu oferta educativa no llega con fuerza a nuevos segmentos.",
+    },
+    sin_trazabilidad:
+      {
+        label: "Falta de seguimiento en el ciclo estudiantil",
+        description: "No puedes rastrear avances desde intento hasta certificación.",
+      },
+    atencion_cliente:
+      {
+        label: "Atención estudiantil dispersa",
+        description: "Los canales de apoyos son desordenados y con respuestas lentas.",
+      },
+  },
+  inmobiliaria: {
+    procesos_manuales: {
+      label: "Gestión de propiedades y clientes en excel",
+      description: "Tiempo perdido en actualizar listados y status de visitas.",
+    },
+    falta_visibilidad: {
+      label: "Sin métricas de cierre y pipeline",
+      description: "No sabes qué etapa tiene cada prospecto ni qué propiedades rotan.",
+    },
+    ventas_estancadas: {
+      label: "Cierre de ventas lento",
+      description: "No alcanzás la velocidad de conversión necesaria en el ciclo.",
+    },
+    presencia_online: {
+      label: "Presencia digital poco atractiva",
+      description: "Los inmuebles no reciben visitas cualificadas en línea.",
+    },
+    sin_trazabilidad: {
+      label: "No rastreas la comunicación con clientes",
+      description: "Pierdes contexto entre corredores y managers en cada lead.",
+    },
+    atencion_cliente: {
+      label: "Seguimiento de interesados deficiente",
+      description: "No hay protocolos de seguimiento ni recordatorios automáticos.",
+    },
+  },
+  tecnologia: {
+    procesos_manuales: {
+      label: "Manejo manual de proyectos y tareas",
+      description: "Tiempo excesivo en actualizaciones manuales de avances.",
+    },
+    falta_visibilidad: {
+      label: "Sin métricas de performance de producto",
+      description: "Dificultad para monitorear adopción, churn y velocidad de desarrollo.",
+    },
+    ventas_estancadas: {
+      label: "Ventastecnológicas estancadas",
+      description: "Falta una estrategia para convertir pruebas en suscripciones.",
+    },
+    presencia_online: {
+      label: "Posicionamiento digital subutilizado",
+      description: "No explota bien el contenido técnico ni los casos de éxito.",
+    },
+    sin_trazabilidad: {
+      label: "Sin rastreo en el ciclo de life del cliente",
+      description: "No conoces los puntos de fragilidad desde onboard hasta soporte.",
+    },
+    atencion_cliente: {
+      label: "Soporte descoordinado",
+      description: "No hay flujo claro entre incidencia, triage y resolución.",
+    },
+  },
+  manufactura: {
+    procesos_manuales: {
+      label: "Procesos productivos manuales",
+      description: "Operaciones y control de calidad dependen de hojas y controles manuales.",
+    },
+    falta_visibilidad: {
+      label: "Visibilidad de planta reducida",
+      description: "No tienes dashboards en tiempo real de eficiencia y desperdicio.",
+    },
+    ventas_estancadas: {
+      label: "Crecimiento de clientes industriales lento",
+      description: "No hay rutas claras para escalar producción con nuevos contratos.",
+    },
+    presencia_online: {
+      label: "Comercial digital poco usado",
+      description: "No capitalizas el canal para calidad y certificaciones en la oferta.",
+    },
+    sin_trazabilidad: {
+      label: "Trazabilidad de inventarios débil",
+      description: "No registras control completo de materias primas y stock final.",
+    },
+    atencion_cliente: {
+      label: "Relación con compradores improductiva",
+      description: "Seguimiento de pedidos y feedback carece de automatización.",
+    },
+  },
+  logistica: {
+    procesos_manuales: {
+      label: "Procesos manuales de rutas y entregas",
+      description: "No hay optimización automatizada de asignación ni rutas.",
+    },
+    falta_visibilidad: {
+      label: "Visibilidad en tiempo real inexistente",
+      description: "No se pueden monitorear entregas ni status de envíos facilmente.",
+    },
+    ventas_estancadas: {
+      label: "Crecimiento de contratos logísticos lento",
+      description: "No logras escalar capacidad con seguridad ni trazabilidad.",
+    },
+    presencia_online: {
+      label: "Oferta digital poco clara",
+      description: "Tu servicio no se diferencia como solución integral online.",
+    },
+    sin_trazabilidad: {
+      label: "Trazabilidad de paquetes y rutas deficiente",
+      description: "Flujo de datos fragmentado entre clientes y transporte.",
+    },
+    atencion_cliente: {
+      label: "Respuestas lentas a clientes",
+      description: "No tienes alerta rápida sobre problemas de entrega o seguimiento.",
+    },
+  },
+  otra: {},
+}
+
+// ============================
+// Current tools
+
 // ============================
 // Current tools
 // ============================

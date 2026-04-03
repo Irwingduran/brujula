@@ -1,6 +1,6 @@
 "use client"
 
-import { INDUSTRIES, COMPANY_SIZES, PAIN_POINTS, CURRENT_TOOLS } from "@/lib/constants"
+import { INDUSTRIES, COMPANY_SIZES, PAIN_POINTS, CURRENT_TOOLS, INDUSTRY_PAIN_SUGGESTIONS, INDUSTRY_PAIN_HINTS, INDUSTRY_PAIN_OVERRIDES } from "@/lib/constants"
 import type { WizardStep1Data, PainPoint, CompanySize, CurrentTool } from "@/lib/types"
 import { useState } from "react"
 import { motion } from "framer-motion"
@@ -35,6 +35,11 @@ export function Step1Business({ data, onComplete }: Step1Props) {
   const [herramientaOtra, setHerramientaOtra] = useState(data?.herramienta_otra ?? "")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const suggestedPainPoints = industria ? INDUSTRY_PAIN_SUGGESTIONS[industria] ?? [] : []
+  const suggestedPainHints = industria ? INDUSTRY_PAIN_HINTS[industria] ?? [] : []
+  const painOverrides = industria ? INDUSTRY_PAIN_OVERRIDES[industria] ?? {} : {}
+  const industriaLabel = INDUSTRIES.find((i) => i.value === industria)?.label
 
   function togglePain(pain: PainPoint) {
     setDolores((prev) =>
@@ -171,7 +176,28 @@ export function Step1Business({ data, onComplete }: Step1Props) {
             <legend className="text-base font-semibold text-foreground">
               ¿Cuáles son tus principales desafíos?
             </legend>
-            <p className="text-sm text-muted-foreground">Selecciona todos los que apliquen</p>
+            <p className="text-sm text-muted-foreground">
+              Selecciona todos los que apliquen. {industria ? `A continuación tienes los problemas más comunes en ${industriaLabel}.` : ""}
+            </p>
+            {industria && suggestedPainPoints.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {suggestedPainPoints.map((pain) => {
+                    const label = PAIN_POINTS.find((p) => p.value === pain)?.label
+                    return (
+                      <span key={pain} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                        {label ?? pain}
+                      </span>
+                    )
+                  })}
+                </div>
+                <ul className="ml-4 list-disc text-sm text-muted-foreground">
+                  {suggestedPainHints.map((hint, index) => (
+                    <li key={index}>{hint}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -199,8 +225,17 @@ export function Step1Business({ data, onComplete }: Step1Props) {
                 {dolores.includes(p.value) && <Check className="h-4 w-4" />}
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-foreground">{p.label}</div>
-                <div className="mt-1 text-sm text-muted-foreground leading-relaxed">{p.description}</div>
+                {(() => {
+                  const override = painOverrides[p.value]
+                  const label = override?.label ?? p.label
+                  const description = override?.description ?? p.description
+                  return (
+                    <>
+                      <div className="text-sm font-semibold text-foreground">{label}</div>
+                      <div className="mt-1 text-sm text-muted-foreground leading-relaxed">{description}</div>
+                    </>
+                  )
+                })()}
               </div>
             </motion.button>
           ))}
