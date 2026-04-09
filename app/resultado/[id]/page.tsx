@@ -3,15 +3,15 @@ import { Logo } from "@/components/shared/logo"
 import { Footer } from "@/components/landing/footer"
 import { TrackingPixel } from "@/components/shared/tracking-pixel"
 import { DiagnosisSummary } from "@/components/diagnosis/diagnosis-summary"
-import { CheckCircle, Calendar, TrendUp, CurrencyDollar, ArrowRight, Phone, Envelope } from "@phosphor-icons/react/dist/ssr"
+import { CheckCircle, Calendar, ArrowRight, Envelope, UserCircle } from "@phosphor-icons/react/dist/ssr"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
 
 export const metadata: Metadata = {
-  title: "Tu Propuesta Personalizada | Brújula",
-  description: "Revisa tu diagnostico y propuesta personalizada para digitalizar tu negocio.",
+  title: "Tu Diagnóstico | Brújula",
+  description: "Resultados de tu diagnóstico digital personalizado.",
 }
 
 function ScoreBar({ label, value, max }: { label: string; value: number; max: number }) {
@@ -72,10 +72,10 @@ export default async function ResultadoPage({
     COLD: "bg-blue-100 text-blue-800",
   }
 
-  const ctaData = {
-    HOT: { label: "Agendar llamada estratégica", url: "#/agendar" },
-    WARM: { label: "Recibir plan de acción rápido", url: "#/plan" },
-    COLD: { label: "Solicitar evaluación gratuita", url: "#/evaluacion" },
+  const ctaMessages: Record<string, string> = {
+    HOT: "Tu negocio tiene oportunidades inmediatas. Un especialista puede ayudarte a priorizarlas.",
+    WARM: "Hay puntos claros donde mejorar. Un especialista puede armar un plan contigo.",
+    COLD: "Tienes una base sólida. Un especialista puede identificar oportunidades que la IA no alcanza a ver.",
   }
 
   return (
@@ -96,10 +96,10 @@ export default async function ResultadoPage({
             <CheckCircle className="h-7 w-7 text-accent" />
           </div>
           <h1 className="mt-4 font-sans text-3xl font-bold text-foreground md:text-4xl">
-            {`Propuesta para ${lead.nombre}`}
+            {`Tu diagnóstico, ${lead.nombre}`}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Diagnostico personalizado basado en el analisis de tu negocio.
+            Esto es lo que encontramos después de analizar tu negocio.
           </p>
         </div>
 
@@ -125,16 +125,15 @@ export default async function ResultadoPage({
             leadId={id}
           />
 
-          {/* Service recommendation */}
+          {/* Qué encontramos */}
           <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="font-sans text-xl font-bold text-card-foreground">{diagnosis.titulo_servicio}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{diagnosis.diagnostico_texto}</p>
-            <p className="mt-3 text-sm leading-relaxed text-card-foreground">{diagnosis.descripcion}</p>
+            <h2 className="font-sans text-xl font-bold text-card-foreground">Análisis de tu situación</h2>
+            <p className="mt-3 text-sm leading-relaxed text-card-foreground">{diagnosis.diagnostico_texto}</p>
           </div>
 
-          {/* Benefits */}
+          {/* Oportunidades detectadas */}
           <div className="rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-4 font-sans text-base font-semibold text-card-foreground">Beneficios esperados</h3>
+            <h3 className="mb-4 font-sans text-base font-semibold text-card-foreground">Oportunidades detectadas</h3>
             <div className="flex flex-col gap-3">
               {diagnosis.beneficios.map((b) => (
                 <div key={b} className="flex items-start gap-2">
@@ -145,51 +144,36 @@ export default async function ResultadoPage({
             </div>
           </div>
 
-          {/* ROI & Price */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-card p-6">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <TrendUp className="h-4 w-4" />
-                ROI estimado
+          {/* Handoff — Hablar con un especialista */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <UserCircle className="h-8 w-8 text-primary" />
               </div>
-              <p className="mt-2 text-sm font-semibold text-card-foreground">{diagnosis.roi_estimado}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <CurrencyDollar className="h-4 w-4" />
-                Inversion estimada
+              <div className="mt-4 sm:mt-0">
+                <h3 className="font-sans text-lg font-bold text-foreground">
+                  ¿Quieres ayuda para implementar esto?
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {ctaMessages[score.segmento] || ctaMessages.COLD}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  La llamada es gratuita y el especialista ya conoce tu diagnóstico.
+                </p>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <a
+                    href="mailto:hola@somosbrujula.com.mx?subject=Quiero%20hablar%20sobre%20mi%20diagn%C3%B3stico&body=Hola%2C%20acabo%20de%20completar%20mi%20diagn%C3%B3stico%20en%20Br%C3%BAjula%20y%20me%20gustar%C3%ADa%20hablar%20con%20un%20especialista."
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
+                  >
+                    <Envelope className="h-4 w-4" />
+                    Agendar llamada gratuita
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Sin compromiso · Respuesta en menos de 24h
+                </p>
               </div>
-              <p className="mt-2 text-sm font-semibold text-card-foreground">{diagnosis.precio_rango}</p>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
-            <h3 className="font-sans text-lg font-bold text-foreground">
-              Listo para dar el siguiente paso?
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {diagnosis.siguiente_paso}
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <a
-                href={ctaData[score.segmento as keyof typeof ctaData].url}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Calendar className="h-4 w-4" />
-                {ctaData[score.segmento as keyof typeof ctaData].label}
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {lead.telefono}
-              </span>
-              <span className="flex items-center gap-1">
-                <Envelope className="h-3 w-3" />
-                {lead.email}
-              </span>
             </div>
           </div>
         </div>

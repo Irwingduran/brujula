@@ -11,7 +11,7 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <Logo />
             <p className="max-w-xs text-sm text-muted-foreground">
-              Te mostramos el camino. Tú decides cuándo avanzar: IA diagnostica, expertos ejecutan.
+              La herramienta que analiza tu negocio y te muestra exactamente dónde mejorar.
             </p>
           </div>
           

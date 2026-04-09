@@ -2,9 +2,9 @@
 
 import { INDUSTRIES, COMPANY_SIZES, PAIN_POINTS, CURRENT_TOOLS, INDUSTRY_PAIN_SUGGESTIONS, INDUSTRY_PAIN_HINTS, INDUSTRY_PAIN_OVERRIDES } from "@/lib/constants"
 import type { WizardStep1Data, PainPoint, CompanySize, CurrentTool } from "@/lib/types"
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Check, CaretDown, Buildings, UsersThree, Warning, Wrench, ArrowRight } from "@phosphor-icons/react"
+import { Check, CaretDown, Buildings, UsersThree, Warning, Wrench, ArrowRight, SpinnerGap, Sparkle } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step1Props {
@@ -36,9 +36,72 @@ export function Step1Business({ data, onComplete }: Step1Props) {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // AI-powered dynamic pain overrides
+  type PainOverrideMap = Partial<Record<PainPoint, { label: string; description: string }>>
+  const [aiOverrides, setAiOverrides] = useState<PainOverrideMap>({})
+  const [aiHints, setAiHints] = useState<string[]>([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiLoaded, setAiLoaded] = useState(false)
+  const lastFetchedIndustria = useRef("")
+
+  const fetchAiPainPoints = useCallback(async (ind: string, indOtra?: string) => {
+    if (!ind || ind === lastFetchedIndustria.current) return
+    lastFetchedIndustria.current = ind
+    setAiLoading(true)
+    setAiLoaded(false)
+    try {
+      const res = await fetch("/api/ai/pain-points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ industria: ind, industria_otra: indOtra }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.overrides && Object.keys(data.overrides).length > 0) {
+          setAiOverrides(data.overrides)
+        } else {
+          setAiOverrides(INDUSTRY_PAIN_OVERRIDES[ind] ?? {})
+        }
+        setAiHints(Array.isArray(data.hints) && data.hints.length > 0 ? data.hints : INDUSTRY_PAIN_HINTS[ind] ?? [])
+        setAiLoaded(true)
+      } else {
+        throw new Error("fetch failed")
+      }
+    } catch {
+      setAiOverrides(INDUSTRY_PAIN_OVERRIDES[ind] ?? {})
+      setAiHints(INDUSTRY_PAIN_HINTS[ind] ?? [])
+      setAiLoaded(true)
+    } finally {
+      setAiLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (industria && industria !== "otra") {
+      fetchAiPainPoints(industria)
+    } else if (industria === "otra" && industriaOtra.trim().length > 2) {
+      fetchAiPainPoints(industria, industriaOtra)
+    } else {
+      setAiOverrides({})
+      setAiHints([])
+      setAiLoaded(false)
+      lastFetchedIndustria.current = ""
+    }
+  }, [industria, fetchAiPainPoints])
+
+  // Re-fetch for "otra" once user types enough
+  useEffect(() => {
+    if (industria !== "otra" || industriaOtra.trim().length < 3) return
+    const timer = setTimeout(() => {
+      lastFetchedIndustria.current = "" // force re-fetch
+      fetchAiPainPoints("otra", industriaOtra)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [industriaOtra, industria, fetchAiPainPoints])
+
   const suggestedPainPoints = industria ? INDUSTRY_PAIN_SUGGESTIONS[industria] ?? [] : []
-  const suggestedPainHints = industria ? INDUSTRY_PAIN_HINTS[industria] ?? [] : []
-  const painOverrides = industria ? INDUSTRY_PAIN_OVERRIDES[industria] ?? {} : {}
+  const painOverrides = aiLoaded ? aiOverrides : (industria ? INDUSTRY_PAIN_OVERRIDES[industria] ?? {} : {})
+  const painHints = aiLoaded ? aiHints : (industria ? INDUSTRY_PAIN_HINTS[industria] ?? [] : [])
   const industriaLabel = INDUSTRIES.find((i) => i.value === industria)?.label
 
   function togglePain(pain: PainPoint) {
@@ -177,13 +240,31 @@ export function Step1Business({ data, onComplete }: Step1Props) {
               ¿Cuáles son tus principales desafíos?
             </legend>
             <p className="text-sm text-muted-foreground">
-              Selecciona todos los que apliquen. {industria ? `A continuación tienes los problemas más comunes en ${industriaLabel}.` : ""}
+              {industria
+                ? aiLoading
+                  ? "Analizando los desafíos más comunes de tu industria..."
+                  : `Selecciona todos los que apliquen. Hemos adaptado los desafíos para ${industriaLabel}.`
+                : "Selecciona todos los que apliquen."
+              }
             </p>
-            {industria && suggestedPainPoints.length > 0 && (
+            {aiLoading && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-primary">
+                <SpinnerGap className="h-4 w-4 animate-spin" />
+                <span>Personalizando con IA...</span>
+              </div>
+            )}
+            {!aiLoading && aiLoaded && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-primary/70">
+                <Sparkle className="h-3.5 w-3.5" />
+                <span>Personalizado con IA para tu industria</span>
+              </div>
+            )}
+            {!aiLoading && industria && painHints.length > 0 && (
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {suggestedPainPoints.map((pain) => {
-                    const label = PAIN_POINTS.find((p) => p.value === pain)?.label
+                    const override = painOverrides[pain]
+                    const label = override?.label ?? PAIN_POINTS.find((p) => p.value === pain)?.label
                     return (
                       <span key={pain} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                         {label ?? pain}
@@ -192,7 +273,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
                   })}
                 </div>
                 <ul className="ml-4 list-disc text-sm text-muted-foreground">
-                  {suggestedPainHints.map((hint, index) => (
+                  {painHints.map((hint, index) => (
                     <li key={index}>{hint}</li>
                   ))}
                 </ul>
