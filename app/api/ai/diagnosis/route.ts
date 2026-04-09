@@ -14,12 +14,15 @@ export async function POST(request: Request) {
     const step3 = wizardData.step3
 
     // Si no hay API key, retornar fallback
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("OPENAI_API_KEY no configurada, usando diagnóstico de fallback")
+    if (!process.env.OPEN_ROUTER_KEY) {
+      console.warn("OPEN_ROUTER_KEY no configurada, usando diagnóstico de fallback")
       return NextResponse.json(getFallback(step1.industria))
     }
 
-    const client = new OpenAI()
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPEN_ROUTER_KEY,
+    })
 
     const prompt = `Eres un consultor senior de transformación digital para PYMEs en Latinoamérica. Un prospecto completó un diagnóstico completo. Genera su diagnóstico personalizado COMPLETO.
 
@@ -85,7 +88,7 @@ Responde ÚNICAMENTE con JSON válido en este formato:
 }`
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "openai/gpt-4o",
       max_tokens: 1200,
       temperature: 0.45,
       response_format: { type: "json_object" },

@@ -15,13 +15,15 @@ export async function POST(request: Request) {
     const maxQuestions = round === 1 ? 3 : 2
 
     // Si no hay API key, retornar preguntas de fallback
-    console.log("🔍 DEBUG - OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? `Presente (${process.env.OPENAI_API_KEY.substring(0, 20)}...)` : "NO configurada")
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("OPENAI_API_KEY no configurada, usando preguntas de fallback")
+    if (!process.env.OPEN_ROUTER_KEY) {
+      console.warn("OPEN_ROUTER_KEY no configurada, usando preguntas de fallback")
       return NextResponse.json(getFallbackQuestions(round))
     }
 
-    const client = new OpenAI()
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPEN_ROUTER_KEY,
+    })
 
     const previousContext = previousAnswers.length > 0
       ? `\n\nRESPUESTAS ANTERIORES DEL PROSPECTO (Ronda ${round - 1}):\n${previousAnswers.map((a: { question: string; answer: string }, i: number) => `${i + 1}. Pregunta: "${a.question}" → Respuesta: "${a.answer}"`).join("\n")}\n\nUSA estas respuestas para hacer preguntas MÁS PROFUNDAS y específicas. NO repitas temas ya cubiertos.`
@@ -94,7 +96,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adici
 }`
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "openai/gpt-4o",
       max_tokens: 1000,
       temperature: 0.7,
       response_format: { type: "json_object" },

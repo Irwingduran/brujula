@@ -20,8 +20,8 @@ export function Hero() {
   const ctaOpacity = useTransform(smoothProgress, [0.88, 0.95], [0, 1])
 
   const stats = [
-    { icon: TrendDown, value: "Menor costo", label: "sin los gastos de una agencia tradicional" },
-    { icon: UsersThree, value: "IA + Expertos", label: "lo mejor de ambos mundos" },
+    { icon: TrendDown, value: "5 minutos", label: "para obtener tu diagnóstico completo" },
+    { icon: UsersThree, value: "Análisis con IA", label: "personalizado a tu industria y situación" },
     { icon: ShieldCheck, value: "0 riesgo", label: "diagnóstico 100% gratuito" },
   ]
 
@@ -116,11 +116,11 @@ export function Hero() {
 
           <div className="relative z-10 max-w-4xl mx-auto w-full">
             <h2 className="text-center text-4xl md:text-6xl font-bold leading-tight tracking-tight">
-              La primera agencia{" "}
+              Descubre qué{" "}
               <span className="relative inline-block">
              
                 <span className="relative z-10 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
-                  orquestada por IA
+                  necesita tu negocio
                 </span>
                 <svg
                   className="absolute -bottom-1 left-0 w-full"
@@ -138,13 +138,12 @@ export function Hero() {
                   />
                 </svg>
               </span>
-              {" "}en México
             </h2>
 
             <p className="text-center mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Nuestra Inteligencia Artificial analiza tu negocio a fondo y te conecta con el experto indicado
-              para llevarlo al siguiente nivel. Mejor diagnóstico, mejor match,{" "}
-              <strong className="text-foreground">sin los costos de una agencia tradicional.</strong>
+              Responde unas preguntas, nuestra IA analiza tu situación y te entrega
+              un plan de acción personalizado. Si quieres ir más lejos,{" "}
+              <strong className="text-foreground">te conectamos con un especialista.</strong>
             </p>
 
             {/* ✨ CAMBIO: cards con borde gradiente animado + hover lift */}

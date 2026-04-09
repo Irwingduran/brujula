@@ -55,7 +55,7 @@ export default function LandingPage() {
               No tienes nada que perder
             </h2>
             <p className="mt-4 text-pretty text-lg text-white/80 md:text-xl">
-              El diagnóstico es gratis, el plan es tuyo y nadie te va a llamar si no quieres.
+              Usa la herramienta gratis, recibe tu plan y decide si quieres hablar con un experto.
             </p>
             
             <div className="mt-8">
