@@ -51,13 +51,9 @@ export default function LandingPage() {
             className="relative mx-auto max-w-3xl text-center"
           >
             
-            <h2 className="mt-6 text-balance font-sans text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl">
-              No tienes nada que perder
+            <h2 className="mt-6 text-balance font-sans text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-4xl">
+              Consultoría que entiende tu negocio antes de que abras la boca
             </h2>
-            <p className="mt-4 text-pretty text-lg text-white/80 md:text-xl">
-              Usa la herramienta gratis, recibe tu plan y decide si quieres hablar con un experto.
-            </p>
-            
             <div className="mt-8">
               <Link
                 href="/diagnostico"
