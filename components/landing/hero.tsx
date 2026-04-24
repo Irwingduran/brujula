@@ -29,15 +29,6 @@ export function Hero() {
     <div ref={containerRef} className="relative" style={{ height: "550vh" }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-background">
 
-        {/* ✨ CAMBIO: fondo global con ruido de grano sutil — da profundidad sin distraer */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            backgroundSize: "200px 200px",
-          }}
-        />
-
         {/* ── HERO PRINCIPAL ── */}
         <motion.section
           className="absolute inset-0 flex items-center justify-center px-4"
@@ -108,11 +99,6 @@ export function Hero() {
           className="absolute inset-0 flex items-center justify-center px-4"
           style={{ opacity: aiDiffOpacity }}
         >
-          
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-32 top-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-primary/8 blur-[100px]" />
-            <div className="absolute -right-32 top-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]" />
-          </div>
 
           <div className="relative z-10 max-w-4xl mx-auto w-full">
             <h2 className="text-center text-4xl md:text-6xl font-bold leading-tight tracking-tight">
