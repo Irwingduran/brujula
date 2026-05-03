@@ -16,6 +16,7 @@ import type {
   WizardStep3Data,
   DiagnosisResult,
   ScoreBreakdown,
+  WebsiteAnalysis,
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -51,11 +52,14 @@ export function WizardShell() {
   const [score, setScore] = useState<ScoreBreakdown | null>(null)
   const [leadId, setLeadId] = useState<string | null>(null)
 
-  const handleStep1Complete = useCallback((data: WizardStep1Data) => {
-    setWizardData((prev) => ({ ...prev, step1: data }))
-    setCurrentStep(1)
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [])
+  const handleStep1Complete = useCallback((data: WizardStep1Data, analysis?: WebsiteAnalysis) => {
+    setWizardData((prev) => ({
+    ...prev,
+    step1: data,
+    websiteAnalysis: analysis ?? prev.websiteAnalysis,
+  }))
+  setCurrentStep(1)
+}, [])
 
   const handleStep2Complete = useCallback((data: WizardStep2Data) => {
     setWizardData((prev) => ({ ...prev, step2: data }))

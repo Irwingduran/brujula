@@ -1,12 +1,46 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 
+// Tipado opcional para websiteAnalysis (recomendado para TypeScript estricto)
+interface WebsiteAnalysis {
+  url: string
+  descripcion: string
+  resumen_contenido: string
+  tiene_blog: boolean
+  tiene_ecommerce: boolean
+  tiene_formulario_contacto: boolean
+  redes_sociales: string[]
+  oportunidades_mejora?: string[]
+  error?: boolean
+}
+
+interface Step1 {
+  industria: string
+  industria_otra?: string
+  tamano_empresa: string
+  dolores_principales: string[]
+  dolor_otro?: string
+  herramientas_actuales: string[]
+  herramienta_otra?: string
+  websiteAnalysis?: WebsiteAnalysis
+}
+
+interface Step2 {
+  presupuesto: string
+  urgencia: string
+  respuestas_branch: Record<string, string>
+}
+
 export async function POST(request: Request) {
   let round = 1
   try {
     const body = await request.json()
     round = body.round ?? 1
-    const { step1, step2, previousAnswers = [] } = body
+    const { step1, step2, previousAnswers = [] } = body as {
+      step1: Step1
+      step2: Step2
+      previousAnswers?: Array<{ question: string; answer: string }>
+    }
 
     if (!step1 || !step2) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 })
@@ -25,15 +59,35 @@ export async function POST(request: Request) {
       apiKey: process.env.OPEN_ROUTER_KEY,
     })
 
+    // === CONTEXTO DE RESPUESTAS ANTERIORES ===
     const previousContext = previousAnswers.length > 0
-      ? `\n\nRESPUESTAS ANTERIORES DEL PROSPECTO (Ronda ${round - 1}):\n${previousAnswers.map((a: { question: string; answer: string }, i: number) => `${i + 1}. Pregunta: "${a.question}" → Respuesta: "${a.answer}"`).join("\n")}\n\nUSA estas respuestas para hacer preguntas MÁS PROFUNDAS y específicas. NO repitas temas ya cubiertos.`
+      ? `\n\nRESPUESTAS ANTERIORES DEL PROSPECTO (Ronda ${round - 1}):\n${previousAnswers.map((a, i) => `${i + 1}. Pregunta: "${a.question}" → Respuesta: "${a.answer}"`).join("\n")}\n\nUSA estas respuestas para hacer preguntas MÁS PROFUNDAS y específicas. NO repitas temas ya cubiertos.`
       : ""
 
-    // Build human-readable branch context
+    // === CONTEXTO DE BRANCH (situación específica) ===
     const branchEntries = Object.entries(step2.respuestas_branch || {})
     const branchContext = branchEntries.length > 0
       ? branchEntries.map(([key, val]) => `  - ${key.replace(/_/g, " ")}: ${val}`).join("\n")
       : "  (sin respuestas específicas)"
+
+    // === CONTEXTO DE ANÁLISIS DE SITIO WEB ===
+    const websiteContext = step1.websiteAnalysis && !step1.websiteAnalysis.error
+      ? `\n\n🌐 ANÁLISIS DE SU SITIO WEB (${step1.websiteAnalysis.url}):
+- Descripción: ${step1.websiteAnalysis.descripcion}
+- Contenido principal: ${step1.websiteAnalysis.resumen_contenido}
+- Tiene blog: ${step1.websiteAnalysis.tiene_blog ? "Sí" : "No"}
+- Tiene tienda online: ${step1.websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
+- Tiene formulario de contacto: ${step1.websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
+- Redes sociales detectadas: ${step1.websiteAnalysis.redes_sociales.join(", ") || "Ninguna"}
+- Oportunidades detectadas: ${step1.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}
+
+🎯 INSTRUCCIONES PARA USAR ESTE CONTEXTO:
+- NO preguntes sobre elementos que YA existen en su sitio (ej: si ya tiene blog, no preguntes "¿te interesa tener blog?")
+- SI detectaste carencias (sin formulario, sin e-commerce, sin blog), pregunta sobre el impacto de ESA carencia en su operación
+- Si el sitio parece desactualizado o poco funcional, pregunta cómo eso afecta su experiencia con clientes
+- Usa el resumen de contenido para personalizar: si venden servicios, pregunta por procesos de venta; si son e-commerce, por logística, etc.
+- Sé constructivo: las preguntas deben ayudar a dimensionar soluciones, no señalar errores`
+      : ""
 
     const doloresText = step1.dolores_principales.join(", ")
 
@@ -47,7 +101,7 @@ DATOS DEL PROSPECTO:
 - Presupuesto: ${step2.presupuesto}
 - Urgencia: ${step2.urgencia}
 - Situación específica:
-${branchContext}${previousContext}
+${branchContext}${previousContext}${websiteContext}
 
 RONDA ACTUAL: ${round} de 2
 
@@ -59,19 +113,22 @@ INSTRUCCIONES CRÍTICAS:
 - El dolor principal es "${step1.dolores_principales[0]}" — investiga las consecuencias específicas de ESE dolor en la industria "${step1.industria}"
 - Ya contestó sobre su situación: ${branchContext.trim()}. NO repitas esas preguntas. Usa esas respuestas como punto de partida para ir MÁS PROFUNDO.
 - Usa "${step1.herramientas_actuales.join(", ")}" para preguntar por limitaciones específicas de ESAS herramientas en su contexto.
+${step1.websiteAnalysis && !step1.websiteAnalysis.error ? `- Revisaste su sitio web: usa esa información para preguntar sobre brechas digitales específicas (ej: "¿Cómo gestionas los contactos que llegan por tu sitio?", "¿Tu sitio actual te permite mostrar tus servicios de forma efectiva?")` : ''}
 
 EJEMPLOS DE PREGUNTAS BUENAS para diferentes casos:
 - Restaurante con ventas estancadas: "¿Cuál es tu ticket promedio por cliente?" "¿Qué días de la semana tienes más movimiento?" "¿Cómo manejas las reservas y citas?"
 - Clínica con procesos manuales: "¿Cuántas citas pierdes por semana por problemas de agenda?" "¿Cómo manejas los historiales de pacientes?" "¿Cuánto tiempo dedicas a papeleo administrativo?"
 - Agencia con falta de visibilidad: "¿Cómo sigues el progreso de cada proyecto?" "¿Qué métricas de satisfacción de clientes mides?" "¿Cómo reportas resultados a tus clientes?"
+- Negocio con sitio web desactualizado: "¿Con qué frecuencia actualizas el contenido de tu sitio?" "¿Tu sitio te ayuda a convertir visitantes en clientes o solo es informativo?" "¿Has medido cuántas personas contactan desde tu web vs. redes sociales?"
 
 Cada pregunta debe abordar un ángulo DIFERENTE y ESPECÍFICO para su caso.`
   : `Esta es la SEGUNDA y ÚLTIMA ronda. Ya tienes respuestas previas — úsalas para hacer preguntas MÁS PROFUNDAS.
 
 Genera ${maxQuestions} preguntas que:
 1. Profundicen en los puntos más críticos revelados en sus respuestas anteriores
-2. Ayuden a dimensionar la solución ideal (alcance, prioridades, expectativas de resultado medibles)`
-}
+2. Ayuden a dimensionar la solución ideal (alcance, prioridades, expectativas de resultado medibles)
+3. ${step1.websiteAnalysis && !step1.websiteAnalysis.error ? 'Incorporen observaciones del sitio web para preguntar sobre integración, conversión o mejoras digitales específicas' : 'Se centren en métricas de éxito y expectativas de implementación'}
+`}
 
 REGLAS:
 - Cada pregunta debe tener 4-6 opciones de respuesta + una opción "Otro" al final
@@ -79,7 +136,8 @@ REGLAS:
 - Las opciones deben cubrir el rango completo de posibles respuestas
 - Lenguaje conversacional, en español LATAM, sin jerga técnica
 - PROHIBIDO preguntar cosas genéricas como "¿cuántas horas pierdes en tareas repetitivas?" a todos — eso ya lo preguntamos en el paso anterior
-- Las preguntas deben sentirse como una conversación con un consultor que YA LEYÓ sus respuestas previas
+- Las preguntas deben sentirse como una conversación con un consultor que YA LEYÓ sus respuestas previas y, si aplica, revisó su sitio web
+- Si hay websiteAnalysis, úsalo estratégicamente: pregunta sobre brechas, no sobre lo que ya funciona
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adicional:
 {
@@ -97,7 +155,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adici
 
     const completion = await client.chat.completions.create({
       model: "openai/gpt-4o",
-      max_tokens: 1000,
+      max_tokens: 1200, // Aumentado para acomodar contexto web adicional
       temperature: 0.7,
       response_format: { type: "json_object" },
       messages: [

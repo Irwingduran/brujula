@@ -1,10 +1,10 @@
 "use client"
 
 import { INDUSTRIES, COMPANY_SIZES, PAIN_POINTS, CURRENT_TOOLS, INDUSTRY_PAIN_SUGGESTIONS, INDUSTRY_PAIN_HINTS, INDUSTRY_PAIN_OVERRIDES } from "@/lib/constants"
-import type { WizardStep1Data, PainPoint, CompanySize, CurrentTool } from "@/lib/types"
+import type { WizardStep1Data, PainPoint, CompanySize, CurrentTool, WebsiteAnalysis } from "@/lib/types" // ✅ Agregado WebsiteAnalysis
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Check, CaretDown, Buildings, UsersThree, Warning, Wrench, ArrowRight, SpinnerGap, Sparkle } from "@phosphor-icons/react"
+import { Check, CaretDown, Buildings, UsersThree, Warning, Wrench, ArrowRight, SpinnerGap, Sparkle, CheckCircle, Globe } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step1Props {
@@ -33,6 +33,12 @@ export function Step1Business({ data, onComplete }: Step1Props) {
   const [dolorOtro, setDolorOtro] = useState(data?.dolor_otro ?? "")
   const [herramientas, setHerramientas] = useState<CurrentTool[]>(data?.herramientas_actuales ?? [])
   const [herramientaOtra, setHerramientaOtra] = useState(data?.herramienta_otra ?? "")
+  
+  // Website analysis states
+  const [urlSitio, setUrlSitio] = useState(data?.url_sitio ?? "")
+  const [websiteLoading, setWebsiteLoading] = useState(false)
+  const [websiteAnalyzed, setWebsiteAnalyzed] = useState(false)
+  const [websiteError, setWebsiteError] = useState("")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -99,6 +105,13 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     return () => clearTimeout(timer)
   }, [industriaOtra, industria, fetchAiPainPoints])
 
+  // ✅ Limpia estados del sitio web al cambiar de industria
+  useEffect(() => {
+    setWebsiteAnalyzed(false)
+    setWebsiteError("")
+    websiteAnalysisRef.current = null
+  }, [industria])
+
   const suggestedPainPoints = industria ? INDUSTRY_PAIN_SUGGESTIONS[industria] ?? [] : []
   const painOverrides = aiLoaded ? aiOverrides : (industria ? INDUSTRY_PAIN_OVERRIDES[industria] ?? {} : {})
   const painHints = aiLoaded ? aiHints : (industria ? INDUSTRY_PAIN_HINTS[industria] ?? [] : [])
@@ -116,6 +129,16 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     )
   }
 
+  // ✅ Validación de formato de URL
+  function isValidUrl(url: string): boolean {
+    try {
+      new URL(url)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   function validate(): boolean {
     const e: Record<string, string> = {}
     if (!industria) e.industria = "Selecciona tu industria"
@@ -125,22 +148,58 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     if (dolores.includes("otro") && !dolorOtro.trim()) e.dolorOtro = "Describe tu desafío"
     if (herramientas.length === 0) e.herramientas = "Selecciona al menos una herramienta"
     if (herramientas.includes("otro") && !herramientaOtra.trim()) e.herramientaOtra = "Especifica tu herramienta"
+    // ✅ Validación opcional de URL si se proporcionó
+    if (urlSitio.trim() && !isValidUrl(urlSitio)) {
+      e.urlSitio = "Ingresa una URL válida (ej: https://tunegocio.com)"
+    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
+  const websiteAnalysisRef = useRef<WebsiteAnalysis | null>(null)
+
+  // ✅ Función para analizar el sitio (sin duplicar llamadas)
+  const analyzeWebsite = useCallback(async (url: string) => {
+    if (!url.trim() || !isValidUrl(url)) return
+    setWebsiteLoading(true)
+    setWebsiteError("")
+    setWebsiteAnalyzed(false)
+    try {
+      const res = await fetch("/api/website/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setWebsiteError("No pudimos acceder al sitio. Puedes continuar igual.")
+      } else {
+        setWebsiteAnalyzed(true)
+      }
+      websiteAnalysisRef.current = data
+    } catch {
+      setWebsiteError("Error al analizar el sitio.")
+    } finally {
+      setWebsiteLoading(false)
+    }
+  }, [])
+
   function handleSubmit() {
-    if (!validate()) return
-    onComplete({
-      industria: industria === "otra" ? "otra" : industria,
-      industria_otra: industria === "otra" ? industriaOtra : undefined,
-      tamano_empresa: tamano as CompanySize,
-      dolores_principales: dolores,
-      dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
-      herramientas_actuales: herramientas,
-      herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
-    })
-  }
+  if (!validate()) return
+  
+  onComplete({
+    industria: industria === "otra" ? "otra" : industria,
+    industria_otra: industria === "otra" ? industriaOtra : undefined,
+    tamano_empresa: tamano as CompanySize,
+    dolores_principales: dolores,
+    dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
+    herramientas_actuales: herramientas,
+    herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
+    url_sitio: urlSitio.trim() || undefined,
+    // ✅ Usa el ref con el tipo correcto
+    website_analysis: websiteAnalysisRef.current ?? undefined,
+  })
+}
 
   return (
     <motion.div 
@@ -335,6 +394,69 @@ export function Step1Business({ data, onComplete }: Step1Props) {
         {errors.dolorOtro && <p className="mt-2 text-sm text-destructive font-medium">{errors.dolorOtro}</p>}
         {errors.dolores && <p className="mt-2 text-sm text-destructive font-medium">{errors.dolores}</p>}
       </motion.fieldset>
+
+      {/* Website Analysis - Corregido */}
+      <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Globe className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-foreground">
+              ¿Tienes sitio web? (opcional)
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Lo analizamos para personalizar aún más tu diagnóstico
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={urlSitio}
+            onChange={(e) => {
+              setUrlSitio(e.target.value)
+              setWebsiteAnalyzed(false)
+              setWebsiteError("")
+            }}
+            // ✅ Removido onBlur para evitar doble llamada
+            placeholder="https://tunegocio.com"
+            className="flex-1 rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+          />
+          <button
+            type="button"
+            onClick={() => analyzeWebsite(urlSitio)}
+            disabled={!urlSitio.trim() || websiteLoading}
+            className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {websiteLoading ? (
+              <SpinnerGap className="h-4 w-4 animate-spin" />
+            ) : (
+              "Analizar"
+            )}
+          </button>
+        </div>
+
+        {websiteLoading && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-primary">
+            <SpinnerGap className="h-4 w-4 animate-spin" />
+            <span>Analizando tu sitio web...</span>
+          </div>
+        )}
+
+        {websiteAnalyzed && !websiteError && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-accent">
+            <CheckCircle className="h-4 w-4" />
+            <span>Sitio analizado. Tu diagnóstico incluirá observaciones de tu presencia web.</span>
+          </div>
+        )}
+
+        {websiteError && (
+          <p className="mt-2 text-sm text-muted-foreground">{websiteError}</p>
+        )}
+        {errors.urlSitio && <p className="mt-2 text-sm text-destructive font-medium">{errors.urlSitio}</p>}
+      </motion.div>
 
       {/* Current Tools */}
       <motion.fieldset variants={itemVariants} className="glass-card rounded-2xl p-6">
