@@ -24,6 +24,24 @@ export async function POST(request: Request) {
       apiKey: process.env.OPEN_ROUTER_KEY,
     })
 
+    // === CONTEXTO DE ANÁLISIS DE SITIO WEB ===
+    const websiteContext = wizardData.websiteAnalysis && !wizardData.websiteAnalysis.error
+      ? `
+ANÁLISIS DE SU SITIO WEB (${wizardData.websiteAnalysis.url}):
+- Descripción detectada: ${wizardData.websiteAnalysis.descripcion}
+- Contenido: ${wizardData.websiteAnalysis.resumen_contenido}
+- Tiene blog: ${wizardData.websiteAnalysis.tiene_blog ? "Sí" : "No"}
+- Tiene tienda online: ${wizardData.websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
+- Tiene formulario de contacto: ${wizardData.websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
+- Redes sociales detectadas: ${wizardData.websiteAnalysis.redes_sociales.join(", ") || "Ninguna"}
+- Oportunidades detectadas en el sitio: ${wizardData.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}
+
+USA esta información para hacer el diagnóstico MÁS ESPECÍFICO. 
+Menciona lo que viste en su sitio: si el sitio se ve desactualizado, si no tiene e-commerce pero podría necesitarlo, 
+si sus redes sociales están desconectadas del sitio, si falta formulario de contacto, etc.
+Sé constructivo: señala oportunidades concretas de mejora basadas en lo que detectaste.`
+      : ""
+
     const prompt = `Eres un consultor senior de transformación digital para PYMEs en Latinoamérica. Un prospecto completó un diagnóstico completo. Genera su diagnóstico personalizado COMPLETO.
 
 DATOS DEL PROSPECTO:
@@ -39,30 +57,32 @@ SITUACIÓN:
 
 ${step3?.respuestas_ia?.length ? `RESPUESTAS DE ANÁLISIS PROFUNDO:\n${step3.respuestas_ia.map((r: string, i: number) => `${i + 1}. ${r}`).join("\n")}` : ""}
 
-Genera un diagnóstico COMPLETO y PERSONALIZADO con estos 9 campos. Cada campo debe ser 100% específico para este prospecto — NO uses frases genéricas. Basa todo en los datos reales que proporcionó:
+${websiteContext}
+
+Genera un diagnóstico COMPLETO y PERSONALIZADO con estos 10 campos. Cada campo debe ser 100% específico para este prospecto — NO uses frases genéricas. Basa todo en los datos reales que proporcionó, incluyendo lo que observaste en su sitio web si está disponible:
 
 1. titulo_servicio: Nombre del servicio/solución recomendada (máximo 5 palabras). Debe reflejar la necesidad principal del prospecto, no un título genérico.
 
-2. descripcion: Un párrafo de 2-3 oraciones describiendo QUÉ incluye la solución recomendada y CÓMO resuelve específicamente sus dolores. Mención directa a su industria y herramientas actuales.
+2. descripcion: Un párrafo de 2-3 oraciones describiendo QUÉ incluye la solución recomendada y CÓMO resuelve específicamente sus dolores. Mención directa a su industria, herramientas actuales y, si aplica, oportunidades detectadas en su sitio web.
 
-3. diagnostico_texto: Un párrafo de 3-4 oraciones con el análisis principal. Menciona su industria, tamaño de equipo, los dolores que identificó, y por qué la solución recomendada es la indicada. Debe sonar como un consultor experto hablándole directamente.
+3. diagnostico_texto: Un párrafo de 3-4 oraciones con el análisis principal. Menciona su industria, tamaño de equipo, los dolores que identificó, y por qué la solución recomendada es la indicada. Si hay análisis de sitio web, menciona observaciones específicas (ej: "tu sitio no tiene formulario de contacto", "podrías aprovechar un blog para atraer tráfico"). Debe sonar como un consultor experto hablándole directamente.
 
-4. beneficios: Exactamente 4 beneficios concretos y medibles que obtendría. Cada uno debe ser una frase corta que incluya un resultado específico (porcentajes, tiempos, mejoras cuantificables). Deben estar directamente relacionados con los dolores que mencionó.
+4. beneficios: Exactamente 4 beneficios concretos y medibles que obtendría. Cada uno debe ser una frase corta que incluya un resultado específico (porcentajes, tiempos, mejoras cuantificables). Deben estar directamente relacionados con los dolores que mencionó y, si aplica, con las oportunidades de su sitio web.
 
 5. siguiente_paso: Una oración que invite a agendar una llamada, personalizada según su nivel de urgencia (${step2.urgencia}).
 
-6. resumen_personalizado: Un párrafo de 2-3 oraciones con un análisis personalizado de sus oportunidades. Menciona su industria y cómo otros negocios similares se han beneficiado.
+6. resumen_personalizado: Un párrafo de 2-3 oraciones con un análisis personalizado de sus oportunidades. Menciona su industria y cómo otros negocios similares se han beneficiado. Si hay datos del sitio web, úsalos para reforzar el mensaje.
 
-7. tiempo_ahorro: Estimación realista de horas semanales que ahorraría (formato: "X-Y horas por semana"). Basado en su tamaño de empresa y dolores específicos.
+7. tiempo_ahorro: Estimación realista de horas semanales que ahorraría (formato: "X-Y horas por semana"). Basado en su tamaño de empresa, dolores específicos y procesos que podrían optimizarse en su sitio web.
 
-8. pasos_accion: Exactamente 3 pasos concretos y accionables para empezar. Específicos para su caso — no genéricos.
+8. pasos_accion: Exactamente 3 pasos concretos y accionables para empezar. Específicos para su caso — no genéricos. Si hay análisis de sitio, incluye al menos un paso relacionado con mejoras web (ej: "agregar formulario de contacto", "conectar redes sociales al sitio").
 
 9. dato_industria: Un dato o estadística sobre digitalización en su industria específica (${step1.industria}). Debe ser creíble y relevante.
 
 10. caso_exito: Un mini caso de éxito FICTICIO pero REALISTA de una empresa similar. Debe sonar como un caso real que inspire confianza. Objeto con estos campos:
    - empresa: Nombre ficticio creíble (ej: "Clínica Dental Sonríe", "Restaurante El Sabor"). Debe ser del mismo sector/industria del prospecto.
    - industria: La industria del caso (misma que la del prospecto)
-   - problema: 1 oración describiendo el problema que tenían (similar al del prospecto)
+   - problema: 1 oración describiendo el problema que tenían (similar al del prospecto, puede incluir aspectos web si aplica)
    - solucion: 1 oración describiendo qué implementaron
    - resultado: 1 oración con resultados concretos y medibles (cifras, porcentajes, tiempos)
 
@@ -70,6 +90,7 @@ REGLAS:
 - Español LATAM, tono profesional pero cercano
 - No uses jerga técnica — el prospecto es dueño de negocio, no técnico
 - Sé específico: si vende comida, habla de pedidos; si es salud, habla de pacientes
+- Si hay websiteAnalysis, ÚSALO: menciona si el sitio está desactualizado, si falta e-commerce, si las redes no están conectadas, etc.
 - Los beneficios deben ser creíbles, no exagerados
 - El caso de éxito debe ser creíble y del mismo sector
 
@@ -89,7 +110,7 @@ Responde ÚNICAMENTE con JSON válido en este formato:
 
     const completion = await client.chat.completions.create({
       model: "openai/gpt-4o",
-      max_tokens: 1200,
+      max_tokens: 1400, // Aumentado ligeramente para acomodar contexto adicional
       temperature: 0.45,
       response_format: { type: "json_object" },
       messages: [

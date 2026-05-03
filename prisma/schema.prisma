@@ -27,6 +27,8 @@ model Lead {
   dolores_principales   String[]
   herramientas_actuales String[]
   descripcion_problema  String    @default("")
+  url_sitio             String    @default("")
+  website_analisis      Json?
 
   // Calificación
   presupuesto           String

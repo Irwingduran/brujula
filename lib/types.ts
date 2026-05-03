@@ -57,6 +57,8 @@ export interface WizardStep1Data {
   dolor_otro?: string
   herramientas_actuales: CurrentTool[]
   herramienta_otra?: string
+  url_sitio?: string 
+  website_analysis?: WebsiteAnalysis 
 }
 
 export interface WizardStep2Data {
@@ -66,6 +68,19 @@ export interface WizardStep2Data {
   nombre: string
   email: string
   telefono: string
+}
+
+export interface WebsiteAnalysis {
+  url: string
+  titulo?: string
+  descripcion?: string
+  resumen_contenido: string   // lo que encontró la IA al analizar el sitio
+  tiene_blog: boolean
+  tiene_ecommerce: boolean
+  tiene_formulario_contacto: boolean
+  redes_sociales: string[]
+  keywords_detectadas: string[]
+  error?: string              // si el scraping falló
 }
 
 export interface WizardStep3Data {
@@ -91,6 +106,7 @@ export interface WizardData {
   step1: WizardStep1Data | null
   step2: WizardStep2Data | null
   step3: WizardStep3Data | null
+  websiteAnalysis?: WebsiteAnalysis  
 }
 
 // ============================

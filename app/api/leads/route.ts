@@ -52,6 +52,8 @@ export async function POST(request: Request) {
         diagnostico: diagnosis as object,
         segmento: score.segmento,
         estado_pipeline: "wizard_completado",
+        url_sitio: wizardData.step1?.url_sitio ?? "",
+        website_analisis: wizardData.websiteAnalysis as object ?? {},
       },
     })
 
