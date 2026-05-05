@@ -5,7 +5,7 @@ import { generateDiagnosis } from "@/lib/diagnosis"
 import { sendDiagnosticoEmail, sendHotLeadNotification } from "@/lib/email"
 import type { WizardData, DiagnosisResult, ScoreBreakdown } from "@/lib/types" 
 
-// GET /api/leads — Listar todos
+// GET /api/leads 
 export async function GET() {
   try {
     const leads = await prisma.lead.findMany({
