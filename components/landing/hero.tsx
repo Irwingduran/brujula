@@ -1,242 +1,213 @@
 "use client"
 import Link from "next/link"
-import { motion, useScroll, useTransform, useSpring } from "framer-motion"
-import { ArrowRight, Check, ChatDots, TrendDown, Compass, UsersThree, ShieldCheck } from "@phosphor-icons/react"
-import { useRef } from "react"
+import { motion } from "framer-motion"
+import { ArrowRight, Check, ChatDots, Compass, ClipboardText, Timer, ShieldCheck, ListChecks } from "@phosphor-icons/react"
+
+const stats = [
+  { icon: Timer, value: "5 min", label: "para tu diagnóstico completo" },
+  { icon: ShieldCheck, value: "100%", label: "gratuito, sin trampas" },
+  { icon: ListChecks, value: "3", label: "acciones concretas priorizadas" },
+]
+
+const STEPS = [
+  {
+    icon: ChatDots,
+    title: "Cuéntanos sobre tu negocio",
+    description: "Responde preguntas sobre tu operación, tus herramientas actuales y tus objetivos.",
+  },
+  {
+    icon: Compass,
+    title: "Brújula hace el análisis",
+    description: "Brújula detecta los síntomas digitales de tu negocio — visibilidad, captación, operaciones — y los prioriza por impacto real y presupuesto disponible.",
+  },
+  {
+    icon: ClipboardText,
+    title: "Recibe tu plan personalizado",
+    description: "Recibes entre 2 y 5 recomendaciones ordenadas: qué hacer esta semana, qué dejar para después y qué no vale la pena en tu caso.",
+  },
+]
 
 export function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  })
-  const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 })
-
-  const heroOpacity = useTransform(smoothProgress, [0, 0.15], [1, 0])
-  const heroScale = useTransform(smoothProgress, [0, 0.15], [1, 0.95])
-  const aiDiffOpacity = useTransform(smoothProgress, [0.15, 0.22, 0.38, 0.44], [0, 1, 1, 0])
-  const step1Opacity = useTransform(smoothProgress, [0.44, 0.50, 0.58, 0.64], [0, 1, 1, 0])
-  const step2Opacity = useTransform(smoothProgress, [0.64, 0.72, 0.82, 0.88], [0, 1, 1, 0])
-  const ctaOpacity = useTransform(smoothProgress, [0.88, 0.95], [0, 1])
-
-  const stats = [
-    { icon: TrendDown, value: "5 minutos", label: "para obtener tu diagnóstico completo" },
-    { icon: UsersThree, value: "Análisis con IA", label: "personalizado a tu industria y situación" },
-    { icon: ShieldCheck, value: "0 riesgo", label: "diagnóstico 100% gratuito" },
-  ]
-
   return (
-    <div ref={containerRef} className="relative" style={{ height: "550vh" }}>
-      <div className="sticky top-0 h-screen overflow-hidden bg-background">
+    <div className="min-h-screen">
+      {/* ── HERO ── */}
+      <section className="relative flex min-h-[85vh] items-center justify-center overflow-hidden px-4">
+        {/* Glow background */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />
+        </div>
 
-        {/* ── HERO PRINCIPAL ── */}
-        <motion.section
-          className="absolute inset-0 flex items-center justify-center px-4"
-          style={{ opacity: heroOpacity, scale: heroScale }}
-        >
-          {/* ✨ CAMBIO: gradiente radial centrado detrás del texto — efecto "glow" de foco */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />
-          </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
 
-          {/* ✨ CAMBIO: grid de puntos de fondo para dar textura al espacio vacío */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
-              backgroundSize: "32px 32px",
-            }}
-          />
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl font-bold leading-tight tracking-tight md:text-7xl"
+          >
+            ¿Qué tan digitalizada está{" "}
+            <span className="bg-primary bg-clip-text text-transparent to-primary/60">tu PYME</span>?
+          </motion.h1>
 
-          <div className="relative z-10 text-center max-w-3xl mx-auto">
-         
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mx-auto mt-6 max-w-xl text-xl text-muted-foreground"
+          >
+            La mayoría de las PYMEs pierden clientes sin saber qué digital les falta.
+            <br />
+            Brújula te dice{" "}
+            <span className="font-medium text-foreground">exactamente qué arreglar, en qué orden,</span>
+            {" "}sin gastar de más.
+          </motion.p>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl md:text-7xl font-bold tracking-tight leading-tight"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-10"
+          >
+            <Link
+              href="/diagnostico"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-medium text-primary-foreground shadow-[0_0_24px_-4px_hsl(var(--primary)/0.5)] transition-all hover:scale-105 hover:shadow-[0_0_36px_-4px_hsl(var(--primary)/0.7)] sm:w-auto"
             >
-              ¿Hacia dónde va <span className="bg-primary to-primary/60 bg-clip-text text-transparent">tu negocio</span>?
-            </motion.h1>
+              Comenzar diagnóstico
+              <ArrowRight className="h-5 w-5" />
+            </Link>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-6 text-xl text-muted-foreground max-w-xl mx-auto"
-            >
-              Brújula te muestra el camino con un diagnóstico digital
-              <br />
-              <span className="text-foreground font-medium">gratuito e impulsado por IA.</span>
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mt-10"
-            >
-              <Link
-                href="/diagnostico"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-medium hover:bg-primary/90 transition-all hover:scale-105 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_36px_-4px_hsl(var(--primary)/0.7)]"
-              >
-                Comenzar diagnóstico
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-
-              <div className="flex justify-center gap-6 mt-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin registro</span>
-                <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin pago</span>
-                <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin compromiso</span>
-              </div>
-            </motion.div>
-          </div>
-        </motion.section>
-
-        {/* ── SECCIÓN DIFERENCIADORA ── */}
-        <motion.section
-          className="absolute inset-0 flex items-center justify-center px-4"
-          style={{ opacity: aiDiffOpacity }}
-        >
-
-          <div className="relative z-10 max-w-4xl mx-auto w-full">
-            <h2 className="text-center text-4xl md:text-6xl font-bold leading-tight tracking-tight">
-              Descubre qué{" "}
-              <span className="relative inline-block">
-             
-                <span className="relative z-10 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
-                  necesita tu negocio
-                </span>
-                <svg
-                  className="absolute -bottom-1 left-0 w-full"
-                  viewBox="0 0 300 8"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M2 6 Q75 2 150 5 Q225 8 298 3"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    className="text-primary/40"
-                  />
-                </svg>
-              </span>
-            </h2>
-
-            <p className="text-center mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Responde unas preguntas, nuestra IA analiza tu situación y te entrega
-              un plan de acción personalizado. Si quieres ir más lejos,{" "}
-              <strong className="text-foreground">te conectamos con un especialista.</strong>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Recibirás: un score de madurez digital · tus 3 síntomas principales · un plan de acción con pasos ordenados por impacto
             </p>
 
-            {/* ✨ CAMBIO: cards con borde gradiente animado + hover lift */}
-            <div className="mt-10 grid grid-cols-3 gap-4 md:gap-6">
-              {stats.map(({ icon: Icon, value, label }, i) => (
+            <div className="mt-6 flex justify-center gap-6 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin registro</span>
+              <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin pago</span>
+              <span className="flex items-center gap-1"><Check className="h-4 w-4" /> Sin compromiso</span>
+            </div>
+          </motion.div>
+
+          {/* Stats */}
+          <div className="mt-8 grid grid-cols-3 gap-4 md:gap-6">
+            {stats.map(({ icon: Icon, value, label }, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + i * 0.1, duration: 0.4 }}
+                className="group flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-4 py-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:bg-card/80 hover:shadow-md"
+              >
+                <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
+                  <div className="absolute inset-0 rounded-full bg-primary/0 blur-md transition-all duration-300 group-hover:bg-primary/15" />
+                  <Icon className="relative h-5 w-5 text-primary" />
+                </div>
+                <span className="text-3xl font-bold text-foreground">{value}</span>
+                <span className="text-xs leading-tight text-muted-foreground">{label}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TIMELINE: CÓMO FUNCIONA ── */}
+      <section className="relative px-4 py-20 md:py-28">
+        <div className="mx-auto max-w-5xl">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center text-3xl font-bold tracking-tight md:text-4xl"
+          >
+            Cómo funciona
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="mt-3 text-center text-lg text-muted-foreground"
+          >
+            Sin consultores, sin reuniones, sin esperar.
+          </motion.p>
+
+          <div className="relative mt-16">
+            {/* Horizontal line (desktop) */}
+            <div className="absolute left-0 right-0 top-8 hidden h-px bg-border md:block" />
+            {/* Vertical line (mobile) */}
+            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border md:hidden" />
+
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
+              {STEPS.map((step, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.4 }}
-                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-4 py-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary/30 hover:bg-card/80"
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15, duration: 0.5 }}
+                  className="relative flex flex-row items-start gap-4 text-left md:flex-col md:items-center md:text-center"
                 >
-                 
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
-                    <div className="absolute inset-0 rounded-full bg-primary/0 blur-md transition-all duration-300 group-hover:bg-primary/15" />
-                    <Icon className="relative h-5 w-5 text-primary" />
+                  {/* Circle */}
+                  <div className="relative z-10 mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background md:mt-0 md:h-16 md:w-16">
+                    <span className="text-sm font-bold text-primary md:text-lg">{i + 1}</span>
                   </div>
-                  <span className="text-3xl font-bold text-foreground">{value}</span>
-                  <span className="text-xs text-muted-foreground leading-tight">{label}</span>
+
+                  {/* Content card */}
+                  <div className="flex w-full flex-1 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md md:p-6">
+                    <div className="mb-3 flex items-center gap-3 md:mb-4 md:justify-center">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 md:h-10 md:w-10">
+                        <step.icon className="h-4 w-4 text-primary md:h-5 md:w-5" />
+                      </div>
+                      <h3 className="text-lg font-bold md:text-xl">{step.title}</h3>
+                    </div>
+                    <p className="flex-1 text-sm text-muted-foreground md:text-base">
+                      {step.description}
+                    </p>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </div>
-        </motion.section>
+        </div>
+      </section>
 
-        {/* ── PASO 1 ── */}
-        <motion.section
-          className="absolute inset-0 flex items-center justify-center px-4"
-          style={{ opacity: step1Opacity }}
+      {/* ── CTA FINAL ── */}
+      <section className="relative overflow-hidden px-4 py-20 md:py-28">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-primary/90" />
+        <div className="absolute inset-0">
+          <div className="absolute -top-[50%] -right-[25%] h-[600px] w-[600px] rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-[50%] -left-[25%] h-[500px] w-[500px] rounded-full bg-accent/20 blur-3xl" />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="relative mx-auto max-w-3xl text-center"
         >
-          {/* ✨ CAMBIO: glow posicionado arriba-derecha para variar composición entre pasos */}
-          <div className="pointer-events-none absolute top-0 right-0 h-[300px] w-[300px] rounded-full bg-primary/6 blur-[80px]" />
-
-          <div className="relative z-10 max-w-2xl mx-auto text-center">
-            {/* ✨ CAMBIO: badge de paso con borde de color + número grande como fondo decorativo */}
-            <h2 className="text-4xl md:text-5xl font-bold">
-              {/* ✨ CAMBIO: primera palabra en color para peso visual */}
-              <span className="text-primary">Cuéntanos</span> sobre tu negocio
-            </h2>
-            <p className="mt-4 text-xl text-muted-foreground">
-              Responde unas preguntas sobre tu operación, tus herramientas y tus objetivos.
-            </p>
-
-            {/* ✨ CAMBIO: ícono con fondo circular y sombra de color en lugar de emoji suelto */}
-            <div className="mt-8 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_32px_-4px_hsl(var(--primary)/0.4)]">
-                <ChatDots className="h-9 w-9 text-primary" />
-              </div>
-            </div>
+          <h2 className="mt-6 text-balance font-sans text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-4xl">
+            Tu diagnóstico es el primer paso.
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-lg text-white/80">
+            Empieza ahora — después podrás agendar una sesión con alguien que ya conoce tu caso.
+          </p>
+          <div className="mt-8">
+            <Link
+              href="/diagnostico"
+              className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-primary shadow-xl shadow-black/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
+            >
+              Comenzar diagnóstico gratis
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Link>
           </div>
-        </motion.section>
-
-        {/* ── PASO 2 ── */}
-        <motion.section
-          className="absolute inset-0 flex items-center justify-center px-4"
-          style={{ opacity: step2Opacity }}
-        >
-          {/* ✨ CAMBIO: glow opuesto al paso 1 — glow abajo-izquierda */}
-          <div className="pointer-events-none absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-primary/6 blur-[80px]" />
-
-          <div className="relative z-10 max-w-2xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              <span className="text-primary">Brújula</span> hace el análisis
-            </h2>
-            <p className="mt-4 text-xl text-muted-foreground">
-              Nuestra IA cruza tus respuestas y te entrega un plan con acciones priorizadas.
-            </p>
-
-            <div className="mt-8 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_32px_-4px_hsl(var(--primary)/0.4)]">
-                <Compass className="h-9 w-9 text-primary" />
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* ── CTA FINAL ── */}
-        <motion.section
-          className="absolute inset-0 flex items-center justify-center px-4"
-          style={{ opacity: ctaOpacity }}
-        >
-          {/* ✨ CAMBIO: glow central grande — efecto "escenario iluminado" para el CTA */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-[500px] w-[700px] rounded-full bg-primary/8 blur-[140px]" />
-          </div>
-
-          <div className="relative z-10 max-w-2xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              ¿Quieres ir{" "}<span className="bg-primary bg-clip-text text-transparent">más lejos</span>?
-            </h2>
-            <p className="mt-4 text-xl text-muted-foreground">
-              Agenda una sesión gratis con un experto que ya conoce tu caso.
-            </p>
-
-            <div className="mt-10">
-              <Link
-                href="/diagnostico"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-medium hover:bg-primary/90 transition-all hover:scale-105 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_40px_-4px_hsl(var(--primary)/0.7)]"
-              >
-                Comenzar ahora
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </div>
-          </div>
-        </motion.section>
-
-      </div>
+        </motion.div>
+      </section>
     </div>
   )
 }

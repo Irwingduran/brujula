@@ -272,6 +272,8 @@ export function WizardShell() {
                     diagnosis={diagnosis}
                     score={score}
                     nombre={wizardData.step2.nombre}
+                    email={wizardData.step2.email}
+                    telefono={wizardData.step2.telefono}
                     leadId={leadId}
                     wizardData={wizardData}
                   />

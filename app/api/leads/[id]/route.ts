@@ -20,7 +20,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/leads/[id] — Actualizar pipeline o notas
+// PATCH /api/leads/[id] — Actualizar pipeline, notas o diagnostico_ia
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -29,10 +29,33 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
 
+    // Whitelist of fields that can be updated via PATCH
+    const allowedFields = [
+      "estado_pipeline",
+      "notas_freelancer",
+      "llamada_agendada_at",
+      "diagnostico_ia",
+      "briefing_profesional",
+    ] as const
+
+    const updateData: Record<string, unknown> = {}
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field]
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: "No hay campos válidos para actualizar" },
+        { status: 400 }
+      )
+    }
+
     const lead = await prisma.lead.update({
       where: { id },
       data: {
-        ...body,
+        ...updateData,
         ultima_actividad_at: new Date(),
       },
     })

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Industria requerida" }, { status: 400 })
     }
 
-    if (!process.env.OPEN_ROUTER_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(getFallback(industria))
     }
 
@@ -79,12 +79,11 @@ Responde ÚNICAMENTE con JSON válido:
 }`
 
     const client = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPEN_ROUTER_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     })
 
     const completion = await client.chat.completions.create({
-      model: "openai/gpt-4o-mini",
+      model: "gpt-4o-mini",
       max_tokens: 600,
       temperature: 0.7,
       response_format: { type: "json_object" },

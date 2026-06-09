@@ -3,11 +3,11 @@ import { Logo } from "@/components/shared/logo"
 import { Footer } from "@/components/landing/footer"
 import { TrackingPixel } from "@/components/shared/tracking-pixel"
 import { DiagnosisSummary } from "@/components/diagnosis/diagnosis-summary"
-import { CheckCircle, Calendar, ArrowRight, Envelope, UserCircle } from "@phosphor-icons/react/dist/ssr"
-import { cn } from "@/lib/utils"
+import { CheckCircle, Lightbulb, Target, RocketLaunch, Star } from "@phosphor-icons/react/dist/ssr"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
+import type { DiagnosisResult, ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
+import { ResultadoCTAs } from "@/components/diagnosis/resultado-ctas"
 
 export const metadata: Metadata = {
   title: "Tu Diagnóstico | Brújula",
@@ -30,7 +30,7 @@ function ScoreBar({ label, value, max }: { label: string; value: number; max: nu
 }
 
 function SegmentSummary({ segmento }: { segmento: string }) {
-  const summary = {
+  const summary: Record<string, { title: string; description: string; badge: string }> = {
     HOT: {
       title: "Oportunidad alta",
       description: "Tu negocio tiene un potencial considerable para mejorar con una intervención rápida. Es momento de avanzar con un plan concreto.",
@@ -46,9 +46,25 @@ function SegmentSummary({ segmento }: { segmento: string }) {
       description: "La situación es más estable, pero hay espacio para ganar eficiencia y visibilidad. Un plan estructurado reduce fricción.",
       badge: "bg-blue-100 text-blue-800",
     },
-  } as const
+  }
+  return summary[segmento] || summary.COLD
+}
 
-  return summary[segmento as keyof typeof summary] || summary.COLD
+const URGENCY_COLORS: Record<string, string> = {
+  inmediata: "bg-red-100 text-red-800",
+  corto: "bg-amber-100 text-amber-800",
+  largo: "bg-blue-100 text-blue-800",
+}
+
+function MadurezIndicator({ nivel }: { nivel: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} className={`h-5 w-5 ${n <= nivel ? "text-primary fill-primary" : "text-muted-foreground/30"}`} weight={n <= nivel ? "fill" : "regular"} />
+      ))}
+      <span className="ml-2 text-sm font-medium text-muted-foreground">{nivel}/5</span>
+    </div>
+  )
 }
 
 export default async function ResultadoPage({
@@ -59,28 +75,18 @@ export default async function ResultadoPage({
   const { id } = await params
   const lead = await prisma.lead.findUnique({ where: { id } })
 
-  if (!lead || !lead.diagnostico || !lead.score) {
+  if (!lead || (!lead.diagnostico && !lead.diagnostico_v2) || !lead.score) {
     notFound()
   }
 
-  const diagnosis = lead.diagnostico as unknown as DiagnosisResult
   const score = lead.score as unknown as ScoreBreakdown
+  const isV2 = lead.pipeline_version === "v2"
 
-  const segmentColors = {
-    HOT: "bg-red-100 text-red-800",
-    WARM: "bg-amber-100 text-amber-800",
-    COLD: "bg-blue-100 text-blue-800",
-  }
-
-  const ctaMessages: Record<string, string> = {
-    HOT: "Tu negocio tiene oportunidades inmediatas. Un especialista puede ayudarte a priorizarlas.",
-    WARM: "Hay puntos claros donde mejorar. Un especialista puede armar un plan contigo.",
-    COLD: "Tienes una base sólida. Un especialista puede identificar oportunidades que la IA no alcanza a ver.",
-  }
+  const websiteAnalysis = lead.website_analisis as { titulo?: string } | null
+  const businessName = websiteAnalysis?.titulo
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Tracking pixel - registra visitas a la propuesta */}
       <TrackingPixel leadId={id} />
 
       <header className="border-b border-border bg-card">
@@ -90,7 +96,6 @@ export default async function ResultadoPage({
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-10">
-        {/* Header */}
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
             <CheckCircle className="h-7 w-7 text-accent" />
@@ -103,83 +108,182 @@ export default async function ResultadoPage({
           </p>
         </div>
 
-        <div className="mt-10 flex flex-col gap-6">
-          <DiagnosisSummary
-            title="Resumen rápido"
-            subtitle="Diagnóstico y prioridades para tu negocio"
-            readinessLabel={SegmentSummary({ segmento: score.segmento }).title}
-            readinessColor={SegmentSummary({ segmento: score.segmento }).badge.includes("red") ? "text-red-700" : SegmentSummary({ segmento: score.segmento }).badge.includes("amber") ? "text-amber-700" : "text-blue-700"}
-            readinessDescription={SegmentSummary({ segmento: score.segmento }).description}
-            diagnosticExecutive={diagnosis.diagnostico_texto}
-            priorities={diagnosis.beneficios.slice(0, 3)}
-            plan={[
-              "30d: diagnóstico fino + piloto de solución",
-              "60d: implementación en procesos clave",
-              "90d: escalado con indicadores de ROI",
-            ]}
-            insights={[
-              { name: "Urgencia", value: score.urgencia >= 18 ? "Alta" : score.urgencia >= 10 ? "Media" : "Baja" },
-              { name: "Impacto esperado", value: score.total >= 70 ? "Muy alto" : score.total >= 40 ? "Alto" : "Moderado" },
-              { name: "Claridad del reto", value: score.claridad_problema >= 12 ? "Muy clara" : score.claridad_problema >= 8 ? "Clara" : "A definir" },
-            ]}
-            leadId={id}
-          />
-
-          {/* Qué encontramos */}
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="font-sans text-xl font-bold text-card-foreground">Análisis de tu situación</h2>
-            <p className="mt-3 text-sm leading-relaxed text-card-foreground">{diagnosis.diagnostico_texto}</p>
-          </div>
-
-          {/* Oportunidades detectadas */}
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-4 font-sans text-base font-semibold text-card-foreground">Oportunidades detectadas</h3>
-            <div className="flex flex-col gap-3">
-              {diagnosis.beneficios.map((b) => (
-                <div key={b} className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span className="text-sm text-card-foreground">{b}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Handoff — Hablar con un especialista */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
-            <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <UserCircle className="h-8 w-8 text-primary" />
-              </div>
-              <div className="mt-4 sm:mt-0">
-                <h3 className="font-sans text-lg font-bold text-foreground">
-                  ¿Quieres ayuda para implementar esto?
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {ctaMessages[score.segmento] || ctaMessages.COLD}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  La llamada es gratuita y el especialista ya conoce tu diagnóstico.
-                </p>
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <a
-                    href="mailto:hola@somosbrujula.com.mx?subject=Quiero%20hablar%20sobre%20mi%20diagn%C3%B3stico&body=Hola%2C%20acabo%20de%20completar%20mi%20diagn%C3%B3stico%20en%20Br%C3%BAjula%20y%20me%20gustar%C3%ADa%20hablar%20con%20un%20especialista."
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
-                  >
-                    <Envelope className="h-4 w-4" />
-                    Agendar llamada gratuita
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Sin compromiso · Respuesta en menos de 24h
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {isV2 && lead.diagnostico_v2 ? (
+          <V2Resultado diagnostico={lead.diagnostico_v2 as unknown as V2Diagnostico} score={score} leadId={id} email={lead.email} telefono={lead.telefono} nombre={lead.nombre} />
+        ) : (
+          <LegacyResultado lead={lead} score={score} businessName={businessName} id={id} />
+        )}
       </main>
 
       <Footer />
+    </div>
+  )
+}
+
+const ctaMessages: Record<string, string> = {
+  HOT: "Tu negocio tiene oportunidades inmediatas. Un especialista puede ayudarte a priorizarlas.",
+  WARM: "Hay puntos claros donde mejorar. Un especialista puede armar un plan contigo.",
+  COLD: "Tienes una base sólida. Un especialista puede identificar oportunidades que la IA no alcanza a ver.",
+}
+
+interface V2Sintoma {
+  sintomaId: string
+  score: number
+  evidencia: string
+}
+
+interface V2Accion {
+  accionId: string
+  prioridad: 1 | 2 | 3
+  justificacion: string
+}
+
+interface V2PlanAccion {
+  paso: string
+  descripcion: string
+  urgencia: string
+}
+
+interface V2Redaccion {
+  resumen: string
+  sintomasPrincipales: string[]
+  planDeAccion: V2PlanAccion[]
+  scoreTexto: string
+}
+
+interface V2Clasificacion {
+  segmento: string
+  madurezDigital: number
+  perfilRiesgo: string
+}
+
+interface V2Diagnostico {
+  clasificacion: V2Clasificacion
+  sintomas: V2Sintoma[]
+  acciones: V2Accion[]
+  redaccion: V2Redaccion
+}
+
+function V2Resultado({ diagnostico, score, leadId, email, telefono, nombre }: { diagnostico: V2Diagnostico; score: ScoreBreakdown; leadId: string; email: string; telefono: string; nombre: string }) {
+  const PRIORIDAD_ICONOS = [RocketLaunch, Target, Lightbulb]
+  const PRIORIDAD_LABELS = ["Prioridad 1 — Más urgente", "Prioridad 2 — Siguiente paso", "Prioridad 3 — A futuro"]
+
+  return (
+    <div className="mt-10 flex flex-col gap-6">
+      <div className="rounded-xl border border-border bg-card p-6">
+        <p className="text-lg leading-relaxed text-foreground">
+          {diagnostico.redaccion.resumen}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-sans text-xl font-bold">Tu nivel de madurez digital</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{diagnostico.redaccion.scoreTexto}</p>
+        <div className="mt-4">
+          <MadurezIndicator nivel={diagnostico.clasificacion.madurezDigital} />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-sans text-xl font-bold">Tus 3 síntomas principales</h2>
+        <div className="mt-4 flex flex-col gap-3">
+          {diagnostico.redaccion.sintomasPrincipales.map((sintoma, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {i + 1}
+              </div>
+              <p className="text-sm text-foreground">{sintoma}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-sans text-xl font-bold">Tu plan de acción</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ordenado por prioridad e impacto para tu negocio
+        </p>
+        <div className="mt-4 flex flex-col gap-4">
+          {diagnostico.redaccion.planDeAccion.map((item, i) => {
+            const Icon = PRIORIDAD_ICONOS[i]
+            return (
+              <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-foreground">{item.paso}</h3>
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${URGENCY_COLORS[item.urgencia] || "bg-gray-100 text-gray-800"}`}>
+                        {item.urgencia === "inmediata" ? "Urgente" : item.urgencia === "corto" ? "Corto plazo" : "Largo plazo"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.descripcion}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <ResultadoCTAs
+        leadId={leadId}
+        email={email}
+        telefono={telefono}
+        nombre={nombre}
+        segmento={score.segmento}
+        ctaMessages={ctaMessages}
+      />
+    </div>
+  )
+}
+
+async function LegacyResultado({
+  lead,
+  score,
+  businessName,
+  id,
+}: {
+  lead: { diagnostico: unknown; diagnostico_ia: unknown; nombre: string; score: unknown; segmento: string; email: string; telefono: string }
+  score: ScoreBreakdown
+  businessName?: string
+  id: string
+}) {
+  const diagnosis = lead.diagnostico as unknown as DiagnosisResult
+  const aiDiagnosis = lead.diagnostico_ia as unknown as AIDiagnosisResult | null
+
+  return (
+    <div className="mt-10 flex flex-col gap-6">
+      <DiagnosisSummary
+        businessName={businessName}
+        readinessLabel={SegmentSummary({ segmento: score.segmento }).title}
+        readinessColor={SegmentSummary({ segmento: score.segmento }).badge.includes("red") ? "text-red-700" : SegmentSummary({ segmento: score.segmento }).badge.includes("amber") ? "text-amber-700" : "text-blue-700"}
+        readinessDescription={SegmentSummary({ segmento: score.segmento }).description}
+        diagnosticText={aiDiagnosis?.diagnostico_texto ?? diagnosis.diagnostico_texto}
+        beneficios={aiDiagnosis?.beneficios ?? diagnosis.beneficios.slice(0, 3)}
+        plan={aiDiagnosis?.plan_30_60_90 ? [
+          `30d: ${aiDiagnosis.plan_30_60_90.dia_30}`,
+          `60d: ${aiDiagnosis.plan_30_60_90.dia_60}`,
+          `90d: ${aiDiagnosis.plan_30_60_90.dia_90}`,
+        ] : [
+          "Diagnóstico y piloto de automatización",
+          "Implementación en procesos clave",
+          "Escalado con indicadores de ROI",
+        ]}
+        sugerenciaMejora={aiDiagnosis?.sugerencia_mejora}
+        casoExito={aiDiagnosis?.caso_exito}
+      />
+
+      <ResultadoCTAs
+        leadId={id}
+        email={lead.email}
+        telefono={lead.telefono}
+        nombre={lead.nombre}
+        segmento={score.segmento}
+        ctaMessages={ctaMessages}
+      />
     </div>
   )
 }

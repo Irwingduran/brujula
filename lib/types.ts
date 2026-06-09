@@ -138,18 +138,9 @@ export interface DiagnosisResult {
 }
 
 export interface AIDiagnosisResult {
-  // Diagnosis content (replaces static templates)
-  titulo_servicio: string
-  descripcion: string
+  // ─── [CLIENTE] — Lo que ve el dueño del negocio ───
   diagnostico_texto: string
   beneficios: string[]
-  siguiente_paso: string
-  // Personalized insights
-  resumen_personalizado: string
-  tiempo_ahorro: string
-  pasos_accion: string[]
-  dato_industria: string
-  // Success story
   caso_exito: {
     empresa: string
     industria: string
@@ -157,6 +148,75 @@ export interface AIDiagnosisResult {
     solucion: string
     resultado: string
   }
+  siguiente_paso: string
+  sugerencia_mejora: string
+  plan_30_60_90: {
+    dia_30: string
+    dia_60: string
+    dia_90: string
+  }
+
+  // ─── [ADMIN] — Lo que ve el profesional en el CRM ───
+  titulo_servicio: string
+  descripcion: string
+  resumen_personalizado: string
+  tiempo_ahorro: string
+  pasos_accion: string[]
+  diagnostico_ejecutivo: string
+  prioridades_inmediatas: string[]
+  dato_industria: string
+
+  // Website analysis (only if URL was provided)
+  hallazgos_web?: {
+    fortalezas: string[]
+    brechas_criticas: string[]
+    recomendaciones_tecnicas: string[]
+  }
+}
+
+// ============================
+// Professional Briefing (for pre-meet preparation)
+// ============================
+
+export interface ProfessionalBriefing {
+  // Quick summary (2 min read)
+  resumen_rapido: string
+
+  // Prospect profile
+  perfil: {
+    tipo_decision_maker: string
+    madurez_digital: "baja" | "media" | "alta"
+    señales_compra: string[]
+    riesgos: string[]
+  }
+
+  // Website analysis for professional (only if URL provided)
+  analisis_web_para_profesional?: {
+    estado_actual: string
+    oportunidades_quick_win: string[]
+    brechas_vs_competencia: string
+    recomendacion_tecnica: string
+  }
+
+  // Talking points for the meeting
+  puntos_conversacion: {
+    abrir_con: string
+    profundizar: string[]
+    no_mencionar: string[]
+    cerrar_con: string
+  }
+
+  // Suggested proposal
+  propuesta_sugerida: {
+    servicio_primario: string
+    servicios_adicionales: string[]
+    rango_precio_sugerido: string
+    timeline_implementacion: string
+    roi_argumento: string
+  }
+
+  // Metadata
+  generado_at: string
 }
 
 // ============================
@@ -183,7 +243,12 @@ export interface Lead {
   respuestas_ia: string[]
   // Generated
   diagnostico: DiagnosisResult | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  diagnostico_ia: AIDiagnosisResult | any | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  briefing_profesional: ProfessionalBriefing | any | null
   score: ScoreBreakdown | null
+  url_sitio?: string
   // Pipeline
   segmento: LeadSegment
   estado_pipeline: PipelineStage

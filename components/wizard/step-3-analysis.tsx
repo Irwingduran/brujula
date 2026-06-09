@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
 import { ANALYSIS_MESSAGES } from "@/lib/constants"
 import type { WizardStep1Data, WizardStep2Data, WizardStep3Data, AIQuestion, AIQuestionsResponse } from "@/lib/types"
-import { SpinnerGap, Sparkle, ArrowLeft, ArrowRight, Check, ChatCircle } from "@phosphor-icons/react"
+import { SpinnerGap, Sparkle, ArrowLeft, ArrowRight, Check, ChatCircle, Brain, Lightbulb, Eye, TrendUp, Target } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface Step3Props {
@@ -15,30 +15,37 @@ interface Step3Props {
   onBack: () => void
 }
 
-type Phase = "analyzing" | "loading-questions" | "questions" | "loading-next" | "done"
+type Phase = "analyzing" | "loading-questions" | "questions" | "loading-next" | "reflection" | "done"
 
 interface AnsweredRound {
   questions: AIQuestion[]
   answers: { question: string; answer: string }[]
 }
 
+function getAnswerIcon(index: number) {
+  const icons = [Target, Lightbulb, TrendUp]
+  return icons[index % icons.length]
+}
+
+function getAnswerColor(index: number) {
+  const colors = ["bg-accent/10 text-accent border-accent/20", "bg-primary/10 text-primary border-primary/20", "bg-emerald-50 text-emerald-700 border-emerald-200"]
+  return colors[index % colors.length]
+}
+
 export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }: Step3Props) {
   const [phase, setPhase] = useState<Phase>(data ? "questions" : "analyzing")
   const [analysisIndex, setAnalysisIndex] = useState(0)
 
-  // Round management
   const [currentRound, setCurrentRound] = useState(1)
   const [completedRounds, setCompletedRounds] = useState<AnsweredRound[]>([])
   const [hasMoreQuestions, setHasMoreQuestions] = useState(true)
 
-  // Current round questions
   const [questions, setQuestions] = useState<AIQuestion[]>([])
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [otherTexts, setOtherTexts] = useState<Record<number, string>>({})
   const [errors, setErrors] = useState<Record<number, string>>({})
   const fetchedRoundRef = useRef(0)
 
-  // Fetch questions for a round
   const fetchQuestions = useCallback(async (round: number, previousAnswers: { question: string; answer: string }[]) => {
     try {
       const res = await fetch("/api/ai/questions", {
@@ -58,23 +65,16 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     }
   }, [step1Data, step2Data])
 
-  // Analysis animation
   useEffect(() => {
     if (phase !== "analyzing") return
     if (analysisIndex >= ANALYSIS_MESSAGES.length) {
-      const timer = setTimeout(() => {
-        setPhase("loading-questions")
-      }, 600)
+      const timer = setTimeout(() => setPhase("loading-questions"), 600)
       return () => clearTimeout(timer)
     }
-
-    const timer = setTimeout(() => {
-      setAnalysisIndex((i) => i + 1)
-    }, 1200)
+    const timer = setTimeout(() => setAnalysisIndex((i) => i + 1), 1200)
     return () => clearTimeout(timer)
   }, [phase, analysisIndex])
 
-  // Fetch first round of questions after analysis
   useEffect(() => {
     if (phase !== "loading-questions") return
     if (fetchedRoundRef.current >= currentRound) return
@@ -85,7 +85,6 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         setQuestions(result.questions)
         setHasMoreQuestions(result.hasMoreQuestions)
       } else {
-        // Fallback — skip to done
         setPhase("done")
         setTimeout(() => onComplete({ respuestas_ia: [] }), 1500)
         return
@@ -152,13 +151,16 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     setCompletedRounds(updatedRounds)
 
     if (hasMoreQuestions && currentRound < 2) {
-      // Load next round (max 2)
-      setPhase("loading-next")
-      const nextRound = currentRound + 1
-      setCurrentRound(nextRound)
+      setPhase("reflection")
       setAnswers({})
       setOtherTexts({})
       setErrors({})
+
+      await new Promise((r) => setTimeout(r, 2000))
+
+      setPhase("loading-next")
+      const nextRound = currentRound + 1
+      setCurrentRound(nextRound)
       fetchedRoundRef.current = nextRound
 
       const allPrevAnswers = updatedRounds.flatMap((r) => r.answers)
@@ -170,11 +172,9 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         setPhase("questions")
         window.scrollTo({ top: 0, behavior: "smooth" })
       } else {
-        // No more questions, finish
         finishWithAnswers(allPrevAnswers)
       }
     } else {
-      // Final round done
       const allAnswers = updatedRounds.flatMap((r) => r.answers)
       finishWithAnswers(allAnswers)
     }
@@ -183,9 +183,7 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
   function finishWithAnswers(allAnswers: { question: string; answer: string }[]) {
     setPhase("done")
     const labels = allAnswers.map((a) => `${a.question}: ${a.answer}`)
-    setTimeout(() => {
-      onComplete({ respuestas_ia: labels })
-    }, 1500)
+    setTimeout(() => onComplete({ respuestas_ia: labels }), 1500)
   }
 
   // ─── Analyzing Phase ───
@@ -215,40 +213,20 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
             <motion.div
               key={msg}
               initial={{ opacity: 0, x: -20 }}
-              animate={{
-                opacity: i <= analysisIndex ? 1 : 0.3,
-                x: 0,
-              }}
+              animate={{ opacity: i <= analysisIndex ? 1 : 0.3, x: 0 }}
               transition={{ delay: i * 0.1, duration: 0.3 }}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
-                i < analysisIndex
-                  ? "bg-accent/10"
-                  : i === analysisIndex
-                    ? "bg-primary/10"
-                    : "bg-muted/30"
+                i < analysisIndex ? "bg-accent/10" : i === analysisIndex ? "bg-primary/10" : "bg-muted/30"
               )}
             >
               <div className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all",
-                i < analysisIndex
-                  ? "bg-accent text-accent-foreground"
-                  : i === analysisIndex
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                i < analysisIndex ? "bg-accent text-accent-foreground" : i === analysisIndex ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}>
-                {i < analysisIndex ? (
-                  <Check className="h-4 w-4" />
-                ) : i === analysisIndex ? (
-                  <SpinnerGap className="h-4 w-4 animate-spin" />
-                ) : (
-                  <span className="text-xs font-medium">{i + 1}</span>
-                )}
+                {i < analysisIndex ? <Check className="h-4 w-4" /> : i === analysisIndex ? <SpinnerGap className="h-4 w-4 animate-spin" /> : <span className="text-xs font-medium">{i + 1}</span>}
               </div>
-              <span className={cn(
-                "text-sm font-medium",
-                i <= analysisIndex ? "text-foreground" : "text-muted-foreground"
-              )}>
+              <span className={cn("text-sm font-medium", i <= analysisIndex ? "text-foreground" : "text-muted-foreground")}>
                 {msg}
               </span>
             </motion.div>
@@ -266,21 +244,78 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <motion.div
-          className="relative mb-6"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        >
+        <motion.div className="relative mb-6" animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
           <SpinnerGap className="h-12 w-12 text-primary" />
         </motion.div>
         <p className="text-lg font-semibold text-foreground">
-          {phase === "loading-next"
-            ? "Analizando tus respuestas para profundizar..."
-            : "Preparando preguntas personalizadas..."}
+          {phase === "loading-next" ? "Analizando tus respuestas para profundizar..." : "Preparando preguntas personalizadas..."}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           Nuestra IA está adaptando las preguntas a tu caso específico
         </p>
+      </motion.div>
+    )
+  }
+
+  // ─── Reflection Phase (between rounds) ───
+  if (phase === "reflection") {
+    const lastRound = completedRounds[completedRounds.length - 1]
+    return (
+      <motion.div
+        className="flex flex-col gap-6 py-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 mb-4">
+            <Brain className="h-8 w-8 text-accent" weight="fill" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">Analizando tus respuestas</h2>
+          <p className="mt-2 text-muted-foreground">La IA está identificando los puntos clave para profundizar...</p>
+        </div>
+
+        <div className="max-w-lg mx-auto w-full space-y-3">
+          {lastRound?.answers.map((a, i) => {
+            const Icon = getAnswerIcon(i)
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.3 }}
+                className={cn("flex items-start gap-3 rounded-xl border p-4", getAnswerColor(i))}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm">
+                  <Icon className="h-4 w-4" weight="fill" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-0.5 line-clamp-2">{a.question}</p>
+                  <p className="text-sm font-semibold text-foreground">{a.answer}</p>
+                </div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.3 + 0.4, type: "spring" }}
+                  className="shrink-0"
+                >
+                  <Check className="h-5 w-5 text-emerald-500" weight="bold" />
+                </motion.div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        <motion.div
+          className="flex justify-center mt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
+          <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2">
+            <SpinnerGap className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Generando siguientes preguntas...</span>
+          </div>
+        </motion.div>
       </motion.div>
     )
   }
@@ -304,7 +339,6 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -319,9 +353,8 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         <p className="text-lg text-muted-foreground">
           {currentRound === 1
             ? "Selecciona la opción que mejor describa tu situación."
-            : "Basándonos en tus respuestas, necesitamos algunos detalles más."}
+            : "Basándonos en tus respuestas anteriores, necesitamos algunos detalles más."}
         </p>
-        {/* Round indicator */}
         <div className="mt-3 flex items-center justify-center gap-2 lg:justify-start">
           <span className="text-xs font-medium text-muted-foreground">
             Ronda {currentRound} de 2
@@ -332,6 +365,28 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
           </span>
         </div>
       </motion.div>
+
+      {/* Previous answers summary (round 2+) */}
+      {completedRounds.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-accent/20 bg-accent/5 p-4"
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Eye className="h-3.5 w-3.5 text-accent" weight="fill" />
+            <span className="text-[11px] font-bold text-accent uppercase tracking-wider">Lo que ya sabemos</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {completedRounds.flatMap((r) => r.answers).map((a, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white border border-accent/20 px-2.5 py-1 text-[11px] text-foreground">
+                <Check className="h-3 w-3 text-accent" weight="bold" />
+                {a.answer}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Questions */}
       {questions.map((q, qIndex) => (
@@ -384,7 +439,6 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         </motion.fieldset>
       ))}
 
-      {/* Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -49,14 +49,13 @@ export async function POST(request: Request) {
     const maxQuestions = round === 1 ? 3 : 2
 
     // Si no hay API key, retornar preguntas de fallback
-    if (!process.env.OPEN_ROUTER_KEY) {
-      console.warn("OPEN_ROUTER_KEY no configurada, usando preguntas de fallback")
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("OPENAI_API_KEY no configurada, usando preguntas de fallback")
       return NextResponse.json(getFallbackQuestions(round))
     }
 
     const client = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPEN_ROUTER_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     })
 
     // === CONTEXTO DE RESPUESTAS ANTERIORES ===
@@ -66,8 +65,60 @@ export async function POST(request: Request) {
 
     // === CONTEXTO DE BRANCH (situación específica) ===
     const branchEntries = Object.entries(step2.respuestas_branch || {})
+    const branchLabels: Record<string, string> = {
+      "proceso_mas_lento": "Proceso más lento",
+      "horas_semana": "Horas semanales en tareas repetitivas",
+      "metricas_actuales": "Métricas actuales",
+      "decisiones_datos": "Toma de decisiones",
+      "canal_principal": "Canal principal de ventas",
+      "problema_ventas": "Principal freno de ventas",
+      "presencia_actual": "Presencia online actual",
+      "objetivo_online": "Objetivo de presencia online",
+      "frecuencia_atencion": "Frecuencia de atención al cliente",
+      "canales_atencion": "Canales de atención al cliente",
+      "herramienta_seguimiento": "Herramienta de seguimiento",
+      "volumen_mensual": "Volumen mensual",
+      "facturacion": "Facturación",
+      "inventario": "Inventario",
+      "seguimiento_pedidos": "Seguimiento de pedidos",
+      "nomina_rrhh": "Nómina/RRHH",
+      "reportes": "Reportes/Contabilidad",
+      "comunicacion": "Comunicación interna",
+      "menos_5": "Menos de 5h",
+      "5_15": "5-15h",
+      "15_30": "15-30h",
+      "mas_30": "Más de 30h",
+      "ventas": "Ventas mensuales",
+      "satisfaccion": "Satisfacción del cliente",
+      "ninguna": "Ninguna métrica",
+      "intuicion": "Por intuición",
+      "datos_basicos": "Datos básicos (Excel)",
+      "tienda_fisica": "Tienda física",
+      "online": "Tienda online",
+      "redes": "Redes sociales",
+      "referidos": "Referidos",
+      "pocos_leads": "Pocos leads",
+      "mal_seguimiento": "Mal seguimiento",
+      "competencia_precios": "Competencia de precios",
+      "falta_marketing": "Falta de marketing",
+      "nada": "Ninguna presencia",
+      "redes_basicas": "Redes sociales básicas",
+      "web_basica": "Web básica",
+      "web_completa": "Web completa + redes",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "presencial": "Presencial",
+      "telefonico": "Telefónico",
+      "excel": "Excel",
+      "crm_basico": "CRM básico",
+      "ninguna_herramienta": "Ninguna herramienta",
+    }
     const branchContext = branchEntries.length > 0
-      ? branchEntries.map(([key, val]) => `  - ${key.replace(/_/g, " ")}: ${val}`).join("\n")
+      ? branchEntries.map(([key, val]) => {
+          const label = branchLabels[key] ?? key.replace(/_/g, " ")
+          const valLabel = branchLabels[val] ?? val
+          return `  - ${label}: ${valLabel} (${val})`
+        }).join("\n")
       : "  (sin respuestas específicas)"
 
     // === CONTEXTO DE ANÁLISIS DE SITIO WEB ===
@@ -108,27 +159,35 @@ RONDA ACTUAL: ${round} de 2
 ${round === 1
   ? `Esta es la PRIMERA ronda. Genera ${maxQuestions} preguntas ÚNICAS y ESPECÍFICAS para ESTE prospecto.
 
-INSTRUCCIONES CRÍTICAS:
-- NO uses preguntas genéricas que le harías a cualquier negocio
-- El dolor principal es "${step1.dolores_principales[0]}" — investiga las consecuencias específicas de ESE dolor en la industria "${step1.industria}"
-- Ya contestó sobre su situación: ${branchContext.trim()}. NO repitas esas preguntas. Usa esas respuestas como punto de partida para ir MÁS PROFUNDO.
-- Usa "${step1.herramientas_actuales.join(", ")}" para preguntar por limitaciones específicas de ESAS herramientas en su contexto.
-${step1.websiteAnalysis && !step1.websiteAnalysis.error ? `- Revisaste su sitio web: usa esa información para preguntar sobre brechas digitales específicas (ej: "¿Cómo gestionas los contactos que llegan por tu sitio?", "¿Tu sitio actual te permite mostrar tus servicios de forma efectiva?")` : ''}
+CADA PREGUNTA debe partir de ALGO CONCRETO que ya sabemos de él (sus respuestas anteriores) para profundizar. No empieces desde cero.
 
-EJEMPLOS DE PREGUNTAS BUENAS para diferentes casos:
-- Restaurante con ventas estancadas: "¿Cuál es tu ticket promedio por cliente?" "¿Qué días de la semana tienes más movimiento?" "¿Cómo manejas las reservas y citas?"
-- Clínica con procesos manuales: "¿Cuántas citas pierdes por semana por problemas de agenda?" "¿Cómo manejas los historiales de pacientes?" "¿Cuánto tiempo dedicas a papeleo administrativo?"
-- Agencia con falta de visibilidad: "¿Cómo sigues el progreso de cada proyecto?" "¿Qué métricas de satisfacción de clientes mides?" "¿Cómo reportas resultados a tus clientes?"
-- Negocio con sitio web desactualizado: "¿Con qué frecuencia actualizas el contenido de tu sitio?" "¿Tu sitio te ayuda a convertir visitantes en clientes o solo es informativo?" "¿Has medido cuántas personas contactan desde tu web vs. redes sociales?"
+INSTRUCCIONES CRÍTICAS:
+- NO uses preguntas genéricas — cada pregunta debe hacer referencia implícita a lo que YA CONTESTÓ
+- El dolor principal es "${step1.dolores_principales[0]}" — investiga las consecuencias específicas de ESE dolor en la industria "${step1.industria}"
+- Ya contestó sobre su situación: las respuestas de "Situación específica" son CLAVE. Úsalas como punto de partida para ir MÁS PROFUNDO.
+  Ejemplo: si dijo "facturación" como proceso más lento, pregunta sobre volumen de facturas, errores frecuentes, tiempo por factura
+  Ejemplo: si dijo "intuición" para toma de decisiones, pregunta sobre qué decisiones le gustaría basar en datos
+- Usa "${step1.herramientas_actuales.join(", ")}" para preguntar por limitaciones específicas de ESAS herramientas en su contexto.
+${step1.websiteAnalysis && !step1.websiteAnalysis.error ? `- Revisaste su sitio web: usa esa información para preguntar sobre brechas digitales específicas.
+  Ejemplo: si no tiene formulario de contacto → "¿Cómo te contactan los clientes que llegan por tu sitio?"
+  Ejemplo: si tiene blog pero parece inactivo → "¿Con qué frecuencia publicas contenido en tu blog?"
+  Ejemplo: si tiene e-commerce → "¿Cómo gestionas la logística de los pedidos que llegan por tu web?"` : ''}
+
+CADA PREGUNTA debe:
+1. Partir de un dato concreto que YA SABEMOS de él (no preguntar desde cero)
+2. Tener un objetivo claro: lo que responderá nos ayudará a definir el ALCANCE de la solución
+3. Sonar como un consultor que YA LEYÓ su información y quiere profundizar
 
 Cada pregunta debe abordar un ángulo DIFERENTE y ESPECÍFICO para su caso.`
-  : `Esta es la SEGUNDA y ÚLTIMA ronda. Ya tienes respuestas previas — úsalas para hacer preguntas MÁS PROFUNDAS.
+  : `Esta es la SEGUNDA y ÚLTIMA ronda. Ya tienes respuestas de la ronda 1 — estas preguntas deben ser CONSECUENCIA DIRECTA de lo que respondió.
 
 Genera ${maxQuestions} preguntas que:
-1. Profundicen en los puntos más críticos revelados en sus respuestas anteriores
-2. Ayuden a dimensionar la solución ideal (alcance, prioridades, expectativas de resultado medibles)
-3. ${step1.websiteAnalysis && !step1.websiteAnalysis.error ? 'Incorporen observaciones del sitio web para preguntar sobre integración, conversión o mejoras digitales específicas' : 'Se centren en métricas de éxito y expectativas de implementación'}
-`}
+1. Tomen UNA respuesta de la ronda anterior y profundicen en ella (ej: si dijo "pierdo clientes por mal seguimiento", preguntar cuántos clientes pierde, qué pasa después de la venta, etc.)
+2. Ayuden a dimensionar la solución ideal: alcance, prioridades, expectativas de resultado medibles
+3. ${step1.websiteAnalysis && !step1.websiteAnalysis.error ? 'Incorporen observaciones del sitio web para preguntar sobre integración, conversión o mejoras digitales específicas — conectando lo que viste en la web con lo que dijo en ronda 1' : 'Se centren en métricas de éxito y expectativas de implementación'}
+4. NO repitan temas ya cubiertos — solo profundicen
+
+IMPORTANTE: Las preguntas de ronda 2 deben ser IMPOSIBLES de generar sin conocer las respuestas de ronda 1. Si se ven genéricas, están mal.`}
 
 REGLAS:
 - Cada pregunta debe tener 4-6 opciones de respuesta + una opción "Otro" al final
@@ -154,7 +213,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adici
 }`
 
     const completion = await client.chat.completions.create({
-      model: "openai/gpt-4o",
+      model: "gpt-4o",
       max_tokens: 1200, // Aumentado para acomodar contexto web adicional
       temperature: 0.7,
       response_format: { type: "json_object" },

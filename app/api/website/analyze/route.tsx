@@ -50,18 +50,17 @@ export async function POST(request: Request) {
       })
     }
 
-    if (!process.env.OPEN_ROUTER_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(getFallbackAnalysis(normalizedUrl))
     }
 
     // 2. Analizar con IA
     const client = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPEN_ROUTER_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     })
 
     const completion = await client.chat.completions.create({
-      model: "openai/gpt-4o-mini",
+      model: "gpt-4o-mini",
       max_tokens: 800,
       temperature: 0.3,
       response_format: { type: "json_object" },

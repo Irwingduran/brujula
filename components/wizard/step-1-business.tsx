@@ -36,9 +36,11 @@ export function Step1Business({ data, onComplete }: Step1Props) {
   
   // Website analysis states
   const [urlSitio, setUrlSitio] = useState(data?.url_sitio ?? "")
-  const [websiteLoading, setWebsiteLoading] = useState(false)
-  const [websiteAnalyzed, setWebsiteAnalyzed] = useState(false)
+  const [websiteAnalyzed, setWebsiteAnalyzed] = useState(!!data?.website_analysis)
   const [websiteError, setWebsiteError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const websiteAnalysisRef = useRef<WebsiteAnalysis | null>(data?.website_analysis ?? null)
+  const lastAnalyzedUrl = useRef(data?.url_sitio ?? "")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -156,14 +158,8 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     return Object.keys(e).length === 0
   }
 
-  const websiteAnalysisRef = useRef<WebsiteAnalysis | null>(null)
-
-  // ✅ Función para analizar el sitio (sin duplicar llamadas)
-  const analyzeWebsite = useCallback(async (url: string) => {
+  const analyzeWebsite = useCallback(async (url: string): Promise<void> => {
     if (!url.trim() || !isValidUrl(url)) return
-    setWebsiteLoading(true)
-    setWebsiteError("")
-    setWebsiteAnalyzed(false)
     try {
       const res = await fetch("/api/website/analyze", {
         method: "POST",
@@ -179,27 +175,32 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       websiteAnalysisRef.current = data
     } catch {
       setWebsiteError("Error al analizar el sitio.")
-    } finally {
-      setWebsiteLoading(false)
     }
   }, [])
 
-  function handleSubmit() {
-  if (!validate()) return
-  
-  onComplete({
-    industria: industria === "otra" ? "otra" : industria,
-    industria_otra: industria === "otra" ? industriaOtra : undefined,
-    tamano_empresa: tamano as CompanySize,
-    dolores_principales: dolores,
-    dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
-    herramientas_actuales: herramientas,
-    herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
-    url_sitio: urlSitio.trim() || undefined,
-    // ✅ Usa el ref con el tipo correcto
-    website_analysis: websiteAnalysisRef.current ?? undefined,
-  })
-}
+  async function handleSubmit() {
+    if (!validate()) return
+    setSubmitting(true)
+
+    // Auto-analyze website if URL provided and not yet analyzed (or URL changed)
+    const trimmedUrl = urlSitio.trim()
+    if (trimmedUrl && isValidUrl(trimmedUrl) && trimmedUrl !== lastAnalyzedUrl.current) {
+      lastAnalyzedUrl.current = trimmedUrl
+      await analyzeWebsite(trimmedUrl)
+    }
+
+    onComplete({
+      industria: industria === "otra" ? "otra" : industria,
+      industria_otra: industria === "otra" ? industriaOtra : undefined,
+      tamano_empresa: tamano as CompanySize,
+      dolores_principales: dolores,
+      dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
+      herramientas_actuales: herramientas,
+      herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
+      url_sitio: trimmedUrl || undefined,
+      website_analysis: websiteAnalysisRef.current ?? undefined,
+    })
+  }
 
   return (
     <motion.div 
@@ -395,7 +396,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
         {errors.dolores && <p className="mt-2 text-sm text-destructive font-medium">{errors.dolores}</p>}
       </motion.fieldset>
 
-      {/* Website Analysis - Corregido */}
+      {/* Website */}
       <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -406,49 +407,27 @@ export function Step1Business({ data, onComplete }: Step1Props) {
               ¿Tienes sitio web? (opcional)
             </h3>
             <p className="text-sm text-muted-foreground">
-              Lo analizamos para personalizar aún más tu diagnóstico
+              Lo analizamos al continuar para personalizar tu diagnóstico
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <input
-            type="url"
-            value={urlSitio}
-            onChange={(e) => {
-              setUrlSitio(e.target.value)
-              setWebsiteAnalyzed(false)
-              setWebsiteError("")
-            }}
-            // ✅ Removido onBlur para evitar doble llamada
-            placeholder="https://tunegocio.com"
-            className="flex-1 rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-          />
-          <button
-            type="button"
-            onClick={() => analyzeWebsite(urlSitio)}
-            disabled={!urlSitio.trim() || websiteLoading}
-            className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-          >
-            {websiteLoading ? (
-              <SpinnerGap className="h-4 w-4 animate-spin" />
-            ) : (
-              "Analizar"
-            )}
-          </button>
-        </div>
-
-        {websiteLoading && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-primary">
-            <SpinnerGap className="h-4 w-4 animate-spin" />
-            <span>Analizando tu sitio web...</span>
-          </div>
-        )}
+        <input
+          type="url"
+          value={urlSitio}
+          onChange={(e) => {
+            setUrlSitio(e.target.value)
+            setWebsiteAnalyzed(false)
+            setWebsiteError("")
+          }}
+          placeholder="https://tunegocio.com"
+          className="w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+        />
 
         {websiteAnalyzed && !websiteError && (
           <div className="mt-3 flex items-center gap-2 text-sm text-accent">
             <CheckCircle className="h-4 w-4" />
-            <span>Sitio analizado. Tu diagnóstico incluirá observaciones de tu presencia web.</span>
+            <span>Sitio analizado</span>
           </div>
         )}
 
@@ -507,12 +486,22 @@ export function Step1Business({ data, onComplete }: Step1Props) {
         <motion.button
           type="button"
           onClick={handleSubmit}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="group flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+          disabled={submitting}
+          whileHover={{ scale: submitting ? 1 : 1.02 }}
+          whileTap={{ scale: submitting ? 1 : 0.98 }}
+          className="group flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-70"
         >
-          Continuar
-          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          {submitting ? (
+            <>
+              <SpinnerGap className="h-5 w-5 animate-spin" />
+              Analizando...
+            </>
+          ) : (
+            <>
+              Continuar
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </>
+          )}
         </motion.button>
       </motion.div>
     </motion.div>

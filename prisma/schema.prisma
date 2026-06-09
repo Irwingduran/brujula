@@ -38,13 +38,27 @@ model Lead {
 
   // Generados por el sistema
   score                 Json?     // ScoreBreakdown completo
-  diagnostico           Json?     // DiagnosisResult completo
+  diagnostico           Json?     // DiagnosisResult completo (estático)
+  diagnostico_ia        Json?     // AIDiagnosisResult completo (generado por GPT-4o)
+  briefing_profesional  Json?     // ProfessionalBriefing para el meet
 
   // Pipeline
   segmento              String    @default("COLD")
   estado_pipeline       String    @default("wizard_completado")
   llamada_agendada_at   DateTime?
   notas_freelancer      String    @default("")
+  notas_llamada         String?   // Feature: preferencia horaria del lead
+  propuesta_enviada_at  DateTime? // Feature: cuándo se envió propuesta por email
+
+  // Pipeline v2
+  segmento_diagnostico  String?   // ej: "micro_retail", "pequena_servicios"
+  madurez_digital       Int?      // 1–5
+  perfil_riesgo         String?   // "alto" | "medio" | "bajo"
+  sintomas_json         Json?     // output del paso 2 (lista de síntomas con scores)
+  acciones_json         Json?     // output del paso 3 (acciones seleccionadas del catálogo)
+  diagnostico_v2        Json?     // output del paso 5 (texto narrativo final)
+  pipeline_version      String?   // "v2" — para distinguir diagnósticos nuevos de viejos
+  pipeline_duration_ms  Int?      // ms totales del pipeline (para monitoreo)
 
   // Tracking de comportamiento
   score_dinamico        Int       @default(0)

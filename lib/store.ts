@@ -183,6 +183,8 @@ function seedDemoLeads() {
       respuestas_branch: {},
       respuestas_ia: [],
       diagnostico: null,
+      diagnostico_ia: null,
+      briefing_profesional: null,
       score: {
         presupuesto: Math.round(demo.score_total * 0.3),
         urgencia: Math.round(demo.score_total * 0.25),
