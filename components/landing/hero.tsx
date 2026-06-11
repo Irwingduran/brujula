@@ -7,7 +7,6 @@ import {
   HERO_HEADLINE,
   HERO_SUBTITLE,
   HERO_CTA,
-  HERO_FEATURES,
   HERO_TRUST_PILLARS,
   PREVIEW_BADGE,
   PREVIEW_TITLE,
@@ -135,18 +134,6 @@ export function Hero() {
               {HERO_CTA}
               <ArrowRight className="h-5 w-5" />
             </Link>
-
-            <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-gray-400">
-              {HERO_FEATURES.map(({ icon: Icon, label }, i) => (
-                <span key={label} className="flex items-center gap-1">
-                  <Icon className="h-4 w-4 text-violet-400" />
-                  {label}
-                  {i < HERO_FEATURES.length - 1 && (
-                    <span className="ml-3 text-gray-300">·</span>
-                  )}
-                </span>
-              ))}
-            </p>
 
             <div className="flex gap-5 text-sm text-gray-400">
               {HERO_TRUST_PILLARS.map((t) => (

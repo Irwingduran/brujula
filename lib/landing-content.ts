@@ -3,8 +3,7 @@ import {
   ChatDots,
   Brain,
   ListChecks,
-  CalendarBlank,
-  ChartBar,
+
   Clock,
   SealCheck,
   Crosshair,
@@ -31,15 +30,6 @@ export const HERO_SUBTITLE =
   "El 70% de las PYMEs mexicanas no sabe qué herramientas digitales necesita ni por dónde empezar. Brújula analiza tu operación y te dice exactamente qué priorizar, en qué orden y sin gastar de más."
 
 export const HERO_CTA = "Comenzar diagnóstico gratis"
-
-export const HERO_FEATURES: {
-  icon: Icon
-  label: string
-}[] = [
-  { icon: ChartBar, label: "Score de madurez" },
-  { icon: ListChecks, label: "3 síntomas clave" },
-  { icon: CalendarBlank, label: "Plan con tiempos y costos" },
-]
 
 export const HERO_TRUST_PILLARS = ["Sin registro", "Sin pago", "Rápido"] as const
 
