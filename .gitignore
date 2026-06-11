@@ -10,3 +10,10 @@ out
 
 # Documentation (local only)
 /docs
+
+# macOS system files
+.DS_Store
+
+# Build artifacts
+tsconfig.tsbuildinfo
+next-env.d.ts
