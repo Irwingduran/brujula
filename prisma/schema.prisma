@@ -109,6 +109,19 @@ model Service {
   leads             LeadService[]
 }
 
+model User {
+  id            String    @id @default(cuid())
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  name          String
+  email         String    @unique
+  password_hash String
+  role          String    @default("admin") // "admin" | "superadmin"
+  active        Boolean   @default(true)
+  last_login_at DateTime?
+}
+
 model LeadService {
   lead_id     String
   service_id  String

@@ -4,7 +4,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Admin | NexoDigital CRM",
+  title: "Admin | Brújula CRM",
   description: "Panel de administracion de leads y pipeline.",
 }
 
