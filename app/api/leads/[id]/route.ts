@@ -34,6 +34,7 @@ export async function PATCH(
       "estado_pipeline",
       "notas_freelancer",
       "llamada_agendada_at",
+      "enlace_reunion",
       "diagnostico_ia",
       "briefing_profesional",
     ] as const

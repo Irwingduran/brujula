@@ -8,6 +8,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import type { DiagnosisResult, ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
 import { ResultadoCTAs } from "@/components/diagnosis/resultado-ctas"
+import { ServiciosRecomendados } from "@/components/diagnosis/servicios-recomendados"
 
 export const metadata: Metadata = {
   title: "Tu Diagnóstico | Brújula",
@@ -228,6 +229,8 @@ function V2Resultado({ diagnostico, score, leadId, email, telefono, nombre }: { 
         </div>
       </div>
 
+      <ServiciosRecomendados leadId={leadId} />
+
       <ResultadoCTAs
         leadId={leadId}
         email={email}
@@ -275,6 +278,8 @@ async function LegacyResultado({
         sugerenciaMejora={aiDiagnosis?.sugerencia_mejora}
         casoExito={aiDiagnosis?.caso_exito}
       />
+
+      <ServiciosRecomendados leadId={id} />
 
       <ResultadoCTAs
         leadId={id}

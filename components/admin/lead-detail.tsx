@@ -4,8 +4,9 @@ import { useState } from "react"
 import type { Lead, PipelineStage } from "@/lib/types"
 import { PIPELINE_STAGES, INDUSTRIES, PAIN_POINTS, COMPANY_SIZES, BUDGET_RANGES, URGENCY_OPTIONS } from "@/lib/constants"
 import { ScoreBadge } from "./score-badge"
+import { LeadServices } from "./lead-services"
 import { cn } from "@/lib/utils"
-import { ArrowLeft, Envelope, Phone, Buildings, Calendar, FloppyDisk, Target, WarningCircle, ChatCircleText, TrendUp, Clock, Lightbulb, Globe } from "@phosphor-icons/react"
+import { ArrowLeft, Envelope, Phone, Buildings, Calendar, FloppyDisk, Target, WarningCircle, ChatCircleText, TrendUp, Clock, Lightbulb, Globe, VideoCamera, PaperPlaneTilt } from "@phosphor-icons/react"
 import Link from "next/link"
 import useSWR, { mutate } from "swr"
 
@@ -32,6 +33,60 @@ function ScoreBar({ label, value, max }: { label: string; value: number; max: nu
 
 function getLabel(value: string, list: { value: string; label: string }[]) {
   return list.find((item) => item.value === value)?.label ?? value
+}
+
+function MeetingLinkForm({ leadId, currentLink }: { leadId: string; currentLink: string }) {
+  const [link, setLink] = useState(currentLink)
+  const [guardando, setGuardando] = useState(false)
+  const [guardado, setGuardado] = useState(false)
+
+  async function handleSave() {
+    if (!link.trim()) return
+    setGuardando(true)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/reunion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enlace_reunion: link.trim() }),
+      })
+      if (res.ok) {
+        setGuardado(true)
+        mutate(`/api/leads/${leadId}`)
+        setTimeout(() => setGuardado(false), 3000)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="url"
+        value={link}
+        onChange={(e) => setLink(e.target.value)}
+        placeholder="https://meet.google.com/..."
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          disabled={guardando || !link.trim() || link === currentLink}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          <VideoCamera className="h-3.5 w-3.5" />
+          {guardando ? "Guardando..." : "Guardar"}
+        </button>
+        {guardado && (
+          <span className="text-[10px] font-medium text-emerald-600">
+            ✓ Guardado
+          </span>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function LeadDetail({ leadId }: LeadDetailProps) {
@@ -550,6 +605,46 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               ))}
             </div>
           </div>
+
+          {/* Enlace de reunión */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-3 text-sm font-semibold text-card-foreground flex items-center gap-2">
+              <VideoCamera className="h-4 w-4" />
+              Reunión
+            </h2>
+
+            {lead.enlace_reunion ? (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <PaperPlaneTilt className="h-3 w-3" />
+                    {lead.reunion_notificado_at
+                      ? `Enviado el ${new Date(lead.reunion_notificado_at).toLocaleDateString("es-MX")}`
+                      : "No notificado aún"}
+                  </div>
+                  <a
+                    href={lead.enlace_reunion}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary hover:underline break-all"
+                  >
+                    {lead.enlace_reunion}
+                  </a>
+                </div>
+                <MeetingLinkForm leadId={leadId} currentLink={lead.enlace_reunion} />
+                {lead.llamada_agendada_at && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Agendada: {new Date(lead.llamada_agendada_at).toLocaleDateString("es-MX", { dateStyle: "long" })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <MeetingLinkForm leadId={leadId} currentLink="" />
+            )}
+          </div>
+
+          {/* Servicios recomendados */}
+          <LeadServices leadId={leadId} industry={lead.industria} />
 
           {/* Quick actions */}
           <div className="rounded-xl border border-border bg-card p-5">

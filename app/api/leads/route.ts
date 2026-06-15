@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { calculateScore } from "@/lib/scoring"
 import { generateDiagnosis } from "@/lib/diagnosis"
 import { sendDiagnosticoEmail, sendHotLeadNotification } from "@/lib/email"
+import { assignSuggestedServices } from "@/lib/servicios/suggester"
 import type { WizardData, DiagnosisResult, ScoreBreakdown } from "@/lib/types" 
  
 // GET /api/leads 
@@ -56,6 +57,19 @@ export async function POST(request: Request) {
         website_analisis: wizardData.websiteAnalysis as object ?? {},
       },
     })
+
+    // Sugerir servicios según su perfil (no bloquea)
+    try {
+      await assignSuggestedServices(
+        lead.id,
+        lead.industria,
+        lead.dolores_principales,
+        lead.urgencia,
+        lead.presupuesto,
+      )
+    } catch (svcError) {
+      console.error("Error asignando servicios sugeridos:", svcError)
+    }
 
     // Enviar emails (no bloquea la respuesta si falla)
     try {

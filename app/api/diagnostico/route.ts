@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ejecutarPipelineDiagnostico } from "@/lib/diagnostico/pipeline"
 import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
+import { assignSuggestedServices } from "@/lib/servicios/suggester"
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +36,15 @@ export async function POST(request: Request) {
             pipeline_duration_ms: durationMs,
           },
         })
+
+        // Sugerir servicios automáticamente según industria y dolores
+        await assignSuggestedServices(
+          leadId,
+          parsed.data.industria,
+          parsed.data.dolores_principales,
+          parsed.data.urgencia,
+          parsed.data.presupuesto,
+        )
       } catch (e) {
         console.error("Error guardando diagnóstico en DB:", e)
       }

@@ -249,6 +249,70 @@ export async function sendPropuestaEmail(lead: PropuestaData) {
   })
 }
 
+export async function sendReunionLinkEmail(data: {
+  nombre: string
+  email: string
+  enlace_reunion: string
+  id: string
+}) {
+  const client = getBrevoClient()
+  if (!client) {
+    console.warn("BREVO_API_KEY no configurada, saltando envío de link de reunión")
+    return
+  }
+
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const fromEmail = process.env.FROM_EMAIL || "hola@brujula.digital"
+  const fromName = process.env.FROM_NAME || "Brújula"
+  const resultadoUrl = `${baseUrl}/resultado/${data.id}`
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #334155;">
+      <h2 style="color: #1E40AF;">Hola ${data.nombre.split(" ")[0]},</h2>
+      <p>Tu reunión con nuestro equipo está confirmada.</p>
+
+      <div style="background: #EFF6FF; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center; border: 2px solid #BFDBFE;">
+        <p style="margin: 0 0 8px; color: #64748B; font-size: 14px;">Enlace para conectarte a la reunión:</p>
+        <a href="${data.enlace_reunion}"
+           style="display: inline-block; background: #1E40AF; color: white; padding: 14px 32px;
+                  border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; margin: 8px 0;">
+          Entrar a la reunión →
+        </a>
+        <p style="margin: 12px 0 0; color: #94A3B8; font-size: 12px; word-break: break-all;">
+          Si el botón no funciona, copia este enlace:<br/>
+          <a href="${data.enlace_reunion}" style="color: #1E40AF; font-size: 12px;">${data.enlace_reunion}</a>
+        </p>
+      </div>
+
+      <p style="color: #64748B; font-size: 14px;">
+        Tips para tu reunión:<br/>
+        • Conéctate 2 minutos antes<br/>
+        • Ten a la mano tu diagnóstico<br/>
+        • Prepara tus preguntas
+      </p>
+
+      <a href="${resultadoUrl}"
+         style="display: inline-block; background: #F1F5F9; color: #475569; padding: 10px 20px;
+                border-radius: 8px; text-decoration: none; font-size: 13px; margin-top: 16px;">
+        Ver mi diagnóstico →
+      </a>
+
+      <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;" />
+      <p style="color: #94A3B8; font-size: 12px;">
+        Brújula · Transformación digital para PYMEs mexicanas<br/>
+        ¿Problemas con el enlace? Responde este correo.
+      </p>
+    </div>
+  `
+
+  await client.transactionalEmails.sendTransacEmail({
+    subject: `🔗 Tu reunión está lista, ${data.nombre.split(" ")[0]} — Brújula`,
+    sender: { email: fromEmail, name: fromName },
+    to: [{ email: data.email, name: data.nombre }],
+    htmlContent,
+  })
+}
+
 export async function sendHotLeadNotification(lead: HotLeadData) {
   const client = getBrevoClient()
   if (!client || !process.env.ADMIN_NOTIFICATION_EMAIL) {

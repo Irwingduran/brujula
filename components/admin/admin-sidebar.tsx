@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { SquaresFour, Columns, Flame, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
+import { SquaresFour, Columns, Flame, Wrench, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: SquaresFour },
   { href: "/admin/pipeline", label: "Pipeline", icon: Columns },
+  { href: "/admin/servicios", label: "Servicios", icon: Wrench },
 ]
 
 export function AdminSidebar() {

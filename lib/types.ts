@@ -249,10 +249,13 @@ export interface Lead {
   briefing_profesional: ProfessionalBriefing | any | null
   score: ScoreBreakdown | null
   url_sitio?: string
+  website_analisis?: WebsiteAnalysis | null
   // Pipeline
   segmento: LeadSegment
   estado_pipeline: PipelineStage
   llamada_agendada_at: string | null
+  enlace_reunion?: string | null
+  reunion_notificado_at?: string | null
   ultima_actividad_at: string
   notas_freelancer: string
 }
