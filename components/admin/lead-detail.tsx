@@ -89,6 +89,52 @@ function MeetingLinkForm({ leadId, currentLink }: { leadId: string; currentLink:
   )
 }
 
+function WhatsAppButton({ leadId, telefono }: { leadId: string; telefono: string }) {
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [error, setError] = useState("")
+
+  async function handleSend() {
+    if (!telefono) {
+      setError("El lead no tiene teléfono registrado")
+      return
+    }
+
+    setEnviando(true)
+    setError("")
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}/enviar-whatsapp`, { method: "POST" })
+
+      if (res.ok) {
+        setEnviado(true)
+        mutate(`/api/leads/${leadId}`)
+        setTimeout(() => setEnviado(false), 5000)
+      } else {
+        const data = await res.json()
+        setError(data.error || "Error al enviar")
+      }
+    } catch {
+      setError("Error de conexión")
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={handleSend}
+        disabled={enviando || enviado}
+        className="w-full rounded-lg bg-green-50 px-3 py-2 text-left text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-50"
+      >
+        {enviando ? "Enviando..." : enviado ? "✓ Enviado por WhatsApp" : "Enviar diagnóstico por WhatsApp"}
+      </button>
+      {error && <p className="text-[10px] text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 export function LeadDetail({ leadId }: LeadDetailProps) {
   const { data: lead, error } = useSWR<Lead>(`/api/leads/${leadId}`, fetcher)
   const [notes, setNotes] = useState<string | null>(null)
@@ -650,6 +696,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
           <div className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold text-card-foreground">Acciones rápidas</h2>
             <div className="flex flex-col gap-2">
+              <WhatsAppButton leadId={leadId} telefono={lead.telefono} />
               <button
                 onClick={() => handlePipelineChange("cerrado")}
                 className="rounded-lg bg-emerald-50 px-3 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
