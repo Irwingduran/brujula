@@ -135,6 +135,11 @@ export interface DiagnosisResult {
   precio_rango: string
   beneficios: string[]
   siguiente_paso: string
+  plan_30_60_90?: {
+    dia_30: string
+    dia_60: string
+    dia_90: string
+  }
 }
 
 export interface AIDiagnosisResult {
@@ -148,7 +153,6 @@ export interface AIDiagnosisResult {
     solucion: string
     resultado: string
   }
-  siguiente_paso: string
   sugerencia_mejora: string
   plan_30_60_90: {
     dia_30: string
@@ -156,17 +160,16 @@ export interface AIDiagnosisResult {
     dia_90: string
   }
 
-  // ─── [ADMIN] — Lo que ve el profesional en el CRM ───
-  titulo_servicio: string
-  descripcion: string
-  resumen_personalizado: string
-  tiempo_ahorro: string
-  pasos_accion: string[]
-  diagnostico_ejecutivo: string
-  prioridades_inmediatas: string[]
-  dato_industria: string
+  // ─── [ADMIN] — Lo que ve el profesional en el CRM (opcional, se genera por separado) ───
+  titulo_servicio?: string
+  descripcion?: string
+  resumen_personalizado?: string
+  tiempo_ahorro?: string
+  pasos_accion?: string[]
+  diagnostico_ejecutivo?: string
+  prioridades_inmediatas?: string[]
+  dato_industria?: string
 
-  // Website analysis (only if URL was provided)
   hallazgos_web?: {
     fortalezas: string[]
     brechas_criticas: string[]

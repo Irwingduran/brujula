@@ -107,6 +107,15 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
   const [aiLoading, setAiLoading] = useState(true)
   const fetchedRef = useRef(false)
 
+  // Use local diagnosis as immediate fallback while AI loads
+  const displayDiagnosis = aiDiagnosis ?? diagnosis
+  const displayBeneficios = aiDiagnosis?.beneficios ?? diagnosis.beneficios
+  const displayPlan = aiDiagnosis?.plan_30_60_90
+    ? [`30d: ${aiDiagnosis.plan_30_60_90.dia_30}`, `60d: ${aiDiagnosis.plan_30_60_90.dia_60}`, `90d: ${aiDiagnosis.plan_30_60_90.dia_90}`]
+    : diagnosis.plan_30_60_90
+      ? [`30d: ${diagnosis.plan_30_60_90.dia_30}`, `60d: ${diagnosis.plan_30_60_90.dia_60}`, `90d: ${diagnosis.plan_30_60_90.dia_90}`]
+      : ["Identifica el proceso clave para empezar", "Implementa cambios priorizados", "Mide resultados y escala"]
+
   useEffect(() => {
     if (fetchedRef.current) return
     fetchedRef.current = true
@@ -119,23 +128,21 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
       .then((res) => res.json())
       .then((data: AIDiagnosisResult) => {
         setAiDiagnosis(data)
-        
-        // Persist AI diagnosis to database (non-blocking)
-        if (leadId && data?.titulo_servicio) {
+
+        if (leadId && data?.diagnostico_texto) {
           fetch(`/api/leads/${leadId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ diagnostico_ia: data }),
           })
             .then(() => {
-              // Trigger briefing generation after AI diagnosis is saved
               fetch("/api/ai/briefing", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ leadId }),
-              }).catch(() => { /* briefing generation is best-effort */ })
+              }).catch(() => {})
             })
-            .catch(() => { /* silent — persistence is best-effort */ })
+            .catch(() => {})
         }
       })
       .catch(() => setAiDiagnosis(null))
@@ -172,27 +179,13 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
         readinessLabel={readiness.label}
         readinessColor={readiness.color}
         readinessDescription={readiness.description}
-        diagnosticText={aiDiagnosis?.diagnostico_texto ?? "Basado en tu situación, identificamos áreas donde puedes mejorar tu operación con herramientas digitales."}
-        beneficios={aiDiagnosis?.beneficios ?? [
-          "Menos tiempo en tareas repetitivas",
-          "Más visibilidad de tus números clave",
-          "Mejor seguimiento a tus clientes",
-        ]}
-        plan={aiDiagnosis?.plan_30_60_90 ? [
-          `30d: ${aiDiagnosis.plan_30_60_90.dia_30}`,
-          `60d: ${aiDiagnosis.plan_30_60_90.dia_60}`,
-          `90d: ${aiDiagnosis.plan_30_60_90.dia_90}`,
-        ] : [
-          "Diagnóstico y piloto de automatización",
-          "Implementación y ajustes basados en datos",
-          "Escalado con medición de resultados",
-        ]}
+        diagnosticText={displayDiagnosis.diagnostico_texto || "Identificamos áreas específicas donde puedes mejorar tu operación. Revisa las recomendaciones abajo."}
+        beneficios={displayBeneficios}
+        plan={displayPlan}
         sugerenciaMejora={aiDiagnosis?.sugerencia_mejora}
         casoExito={aiDiagnosis?.caso_exito}
-        isLoading={aiLoading}
+        isLoading={aiLoading && !displayDiagnosis.diagnostico_texto}
       />
-
-
 
       {/* CTAs */}
       {leadId && (

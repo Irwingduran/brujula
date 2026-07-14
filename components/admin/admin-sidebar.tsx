@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { SquaresFour, Columns, Flame, Wrench, UserCircle, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
@@ -20,9 +21,14 @@ export function AdminSidebar() {
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
       <div className="flex items-center gap-2 border-b border-sidebar-border px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
-          N
-        </div>
+        <Image
+          src="/logo.png"
+          alt="Brújula"
+          width={32}
+          height={32}
+          className="h-8 w-8 rounded-lg object-contain"
+          priority
+        />
         <span className="font-sans text-base font-semibold text-sidebar-foreground tracking-tight">
           Brújula
         </span>

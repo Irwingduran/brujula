@@ -1,4 +1,5 @@
 import type { WizardData, DiagnosisResult, PainPoint, CompanySize, BudgetRange } from "./types"
+import { getKnowledgePack, getFallbackByIndustry, getIndustryBenchmarks } from "./diagnostico/knowledge"
 
 interface ServiceTemplate {
   titulo_servicio: string
@@ -6,7 +7,6 @@ interface ServiceTemplate {
   beneficios: string[]
 }
 
-// Service templates mapped by primary pain point
 const SERVICE_TEMPLATES: Record<PainPoint, ServiceTemplate> = {
   procesos_manuales: {
     titulo_servicio: "Automatizacion de Procesos",
@@ -74,9 +74,33 @@ const SERVICE_TEMPLATES: Record<PainPoint, ServiceTemplate> = {
       "Seguimiento y satisfaccion medidos automaticamente",
     ],
   },
+  otro: {
+    titulo_servicio: "Diagnostico Digital Integral",
+    descripcion:
+      "Solucion personalizada basada en las necesidades especificas de tu negocio.",
+    beneficios: [
+      "Identificacion de areas clave de mejora",
+      "Plan de accion personalizado",
+      "Recomendaciones de herramientas digitales",
+    ],
+  },
 }
 
-// ROI estimation based on company size and pain
+function mapToIndustryCode(industria: string): string {
+  const map: Record<string, string> = {
+    restaurante: "food",
+    retail: "retail",
+    servicios_profesionales: "servicios",
+    salud: "salud",
+    educacion: "educacion",
+    inmobiliaria: "servicios",
+    tecnologia: "servicios",
+    manufactura: "manufactura",
+    logistica: "manufactura",
+  }
+  return map[industria] ?? "otro"
+}
+
 function estimateROI(size: CompanySize, pain: PainPoint): string {
   const sizeMultiplier: Record<CompanySize, number> = {
     solo: 1,
@@ -93,6 +117,7 @@ function estimateROI(size: CompanySize, pain: PainPoint): string {
     presencia_online: { min: 500, max: 1800 },
     sin_trazabilidad: { min: 700, max: 2200 },
     atencion_cliente: { min: 600, max: 1800 },
+    otro: { min: 500, max: 1500 },
   }
 
   const mult = sizeMultiplier[size] ?? 1
@@ -104,7 +129,6 @@ function estimateROI(size: CompanySize, pain: PainPoint): string {
   return `$${min.toLocaleString()} - $${max.toLocaleString()} USD/mes en ahorro o ingresos adicionales`
 }
 
-// Pricing estimation based on budget and scope
 function estimatePricing(budget: BudgetRange, pain: PainPoint): string {
   const ranges: Record<BudgetRange, string> = {
     menos_500: "$350 - $500 USD/mes",
@@ -116,35 +140,6 @@ function estimatePricing(budget: BudgetRange, pain: PainPoint): string {
   return ranges[budget] ?? "$500 - $1,500 USD/mes"
 }
 
-// Generate industry-specific diagnostic text
-function generateDiagnosticText(data: WizardData): string {
-  if (!data.step1 || !data.step2) return ""
-
-  const industry = data.step1.industria
-  const pains = data.step1.dolores_principales
-  const size = data.step1.tamano_empresa
-  const tools = data.step1.herramientas_actuales
-
-  const painLabels: Record<PainPoint, string> = {
-    procesos_manuales: "procesos manuales que consumen tiempo",
-    falta_visibilidad: "falta de visibilidad sobre metricas clave",
-    ventas_estancadas: "ventas estancadas o en declive",
-    presencia_online: "presencia online debil",
-    sin_trazabilidad: "falta de trazabilidad en operaciones",
-    atencion_cliente: "dificultades en la atencion al cliente",
-  }
-
-  const painList = pains.map((p) => painLabels[p] || p).join(", ")
-
-  const hasBasicTools = tools.includes("nada") || tools.includes("excel") || tools.includes("whatsapp")
-  const toolNote = hasBasicTools
-    ? "Actualmente dependes de herramientas basicas que limitan tu crecimiento."
-    : "Ya cuentas con algunas herramientas, pero hay oportunidad de optimizarlas significativamente."
-
-  return `Basado en nuestro analisis de tu negocio en el sector ${industry} con un equipo de tamano ${size}, hemos identificado areas criticas de mejora: ${painList}. ${toolNote} Tu diagnostico indica una oportunidad clara de transformacion digital que puede generar resultados medibles en las primeras semanas de implementacion.`
-}
-
-// Main diagnosis function
 export function generateDiagnosis(data: WizardData): DiagnosisResult {
   if (!data.step1 || !data.step2) {
     return {
@@ -154,21 +149,49 @@ export function generateDiagnosis(data: WizardData): DiagnosisResult {
       roi_estimado: "",
       precio_rango: "",
       beneficios: [],
-      siguiente_paso: "Agenda una llamada gratuita para discutir tu plan personalizado.",
+      siguiente_paso: "",
+      plan_30_60_90: { dia_30: "", dia_60: "", dia_90: "" },
     }
   }
 
+  const industry = data.step1.industria
+  const industryCode = mapToIndustryCode(industry)
   const primaryPain = data.step1.dolores_principales[0] || "procesos_manuales"
+  const knowledge = getKnowledgePack(industryCode)
+  const fb = getFallbackByIndustry(industryCode)
+
+  const pains = data.step1.dolores_principales
+  const painLabels: Record<PainPoint, string> = {
+    procesos_manuales: "procesos manuales que consumen tiempo",
+    falta_visibilidad: "falta de visibilidad sobre metricas clave",
+    ventas_estancadas: "ventas estancadas o en declive",
+    presencia_online: "presencia online debil",
+    sin_trazabilidad: "falta de trazabilidad en operaciones",
+    atencion_cliente: "dificultades en la atencion al cliente",
+    otro: "desafios particulares de su negocio",
+  }
+  const painList = pains.map((p) => painLabels[p] || p).join(", ")
+  const size = data.step1.tamano_empresa
+  const tools = data.step1.herramientas_actuales
+  const hasBasicTools = tools.includes("nada") || tools.includes("excel") || tools.includes("whatsapp")
+  const toolNote = hasBasicTools
+    ? "Actualmente dependes de herramientas basicas que limitan tu crecimiento."
+    : "Ya cuentas con algunas herramientas, pero hay oportunidad de optimizarlas significativamente."
+
   const template = SERVICE_TEMPLATES[primaryPain]
 
   return {
     titulo_servicio: template.titulo_servicio,
     descripcion: template.descripcion,
-    diagnostico_texto: generateDiagnosticText(data),
+    diagnostico_texto: fb?.texto ?? `Basado en nuestro analisis de tu negocio en el sector ${industry} con un equipo de tamano ${size}, hemos identificado areas criticas de mejora: ${painList}. ${toolNote}`,
     roi_estimado: estimateROI(data.step1.tamano_empresa, primaryPain),
     precio_rango: estimatePricing(data.step2.presupuesto, primaryPain),
-    beneficios: template.beneficios,
-    siguiente_paso:
-      "Agenda tu llamada gratuita de 30 minutos para revisar este diagnostico juntos y definir los proximos pasos concretos.",
+    beneficios: fb?.beneficios ?? template.beneficios.slice(0, 3),
+    siguiente_paso: "Agenda tu llamada gratuita de 30 minutos para revisar este diagnostico juntos y definir los proximos pasos concretos.",
+    plan_30_60_90: fb?.plan ?? {
+      dia_30: "Diagnostico detallado y piloto de automatizacion en el proceso mas critico",
+      dia_60: "Implementacion completa con ajustes basados en datos del primer mes",
+      dia_90: "Escalado a procesos secundarios y medicion de ROI consolidado",
+    },
   }
 }

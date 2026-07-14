@@ -5,6 +5,8 @@ export const ClasificacionSchema = z.object({
   madurezDigital: z.number().int().min(1).max(5),
   perfilRiesgo: z.enum(["alto", "medio", "bajo"]),
   industryCode: z.string(),
+  industryLabel: z.string().optional(),
+  subsector: z.string().nullable().optional(),
 })
 
 export type ClasificacionResult = z.infer<typeof ClasificacionSchema>

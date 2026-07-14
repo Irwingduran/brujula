@@ -87,6 +87,24 @@ export function WizardShell() {
       if (res.ok) {
         const lead = await res.json()
         setLeadId(lead.id)
+
+        // Trigger pipeline v2 (structured diagnosis with knowledge packs) — non-blocking
+        const formData = {
+          industria: updatedData.step1!.industria,
+          industria_otra: updatedData.step1!.industria_otra,
+          tamano_empresa: updatedData.step1!.tamano_empresa,
+          dolores_principales: updatedData.step1!.dolores_principales,
+          herramientas_actuales: updatedData.step1!.herramientas_actuales,
+          presupuesto: updatedData.step2!.presupuesto,
+          urgencia: updatedData.step2!.urgencia,
+          respuestas_branch: updatedData.step2!.respuestas_branch,
+          respuestas_ia: updatedData.step3?.respuestas_ia,
+        }
+        fetch("/api/diagnostico", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ formData, leadId: lead.id, _startTime: Date.now() }),
+        }).catch(() => {})
       }
     } catch {
       // Silent fail

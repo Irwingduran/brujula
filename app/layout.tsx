@@ -11,21 +11,8 @@ export const metadata: Metadata = {
   title: 'Diagnóstico Digital Gratuito para tu Negocio | Brújula',
   description: 'Encuentra el norte de tu negocio. Diagnóstico gratuito personalizado para digitalizar y escalar. Automatiza procesos, aumenta ventas y mejora tu presencia online.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 }
 

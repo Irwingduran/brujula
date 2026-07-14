@@ -1,5 +1,6 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
+import { getKnowledgePack, getIndustryBenchmarks } from "@/lib/diagnostico/knowledge"
 
 export async function POST(request: Request) {
   try {
@@ -13,17 +14,19 @@ export async function POST(request: Request) {
     const step2 = wizardData.step2
     const step3 = wizardData.step3
 
-    // Si no hay API key, retornar fallback
-    if (!process.env.OPENAI_API_KEY) { // OpenRouter/OpenAI API Model
-      console.warn("OPENAI_API_KEY no configurada, usando diagnóstico de fallback")
-      return NextResponse.json(getFallback(step1.industria))
+    const industryCode = mapToIndustryCode(step1.industria)
+    const knowledge = getKnowledgePack(industryCode)
+    const benchmarks = getIndustryBenchmarks(industryCode)
+    const guidance = knowledge?.promptGuidance ?? ""
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(getFallback(step1.industria, industryCode))
     }
 
     const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY, // OpenRouter/OpenAI API Model
+      apiKey: process.env.OPENAI_API_KEY,
     })
 
-    // === CONTEXTO DE ANÁLISIS DE SITIO WEB ===
     const websiteContext = wizardData.websiteAnalysis && !wizardData.websiteAnalysis.error
       ? `
 ANÁLISIS DE SU SITIO WEB (${wizardData.websiteAnalysis.url}):
@@ -33,113 +36,88 @@ ANÁLISIS DE SU SITIO WEB (${wizardData.websiteAnalysis.url}):
 - Tiene tienda online: ${wizardData.websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
 - Tiene formulario de contacto: ${wizardData.websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
 - Redes sociales detectadas: ${wizardData.websiteAnalysis.redes_sociales.join(", ") || "Ninguna"}
-- Oportunidades detectadas en el sitio: ${wizardData.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}
-
-USA esta información para hacer el diagnóstico MÁS ESPECÍFICO. 
-Menciona lo que viste en su sitio: si el sitio se ve desactualizado, si no tiene e-commerce pero podría necesitarlo, 
-si sus redes sociales están desconectadas del sitio, si falta formulario de contacto, etc.
-Sé constructivo: señala oportunidades concretas de mejora basadas en lo que detectaste.`
+- Oportunidades detectadas en el sitio: ${wizardData.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}`
       : ""
 
-    const prompt = `Eres un consultor senior de transformación digital para PYMEs en Latinoamérica. Un prospecto completó un diagnóstico completo. Genera su diagnóstico personalizado COMPLETO.
+    const benchmarksText = benchmarks.length
+      ? `\nBENCHMARKS REALES DE SU INDUSTRIA:\n${benchmarks.map((b) => `- ${b.metrica}: ${b.valor} — ${b.descripcion}`).join("\n")}`
+      : ""
+
+    const prompt = `Eres un consultor senior especializado en la industria del prospecto. No eres un consultor genérico de "transformación digital". Eres un experto que entiende los detalles específicos de su tipo de negocio.
 
 DATOS DEL PROSPECTO:
 - Industria: ${step1.industria}${step1.industria_otra ? ` (${step1.industria_otra})` : ""}
 - Tamaño de empresa: ${step1.tamano_empresa}
-- Principales dolores: ${step1.dolores_principales.join(", ")}${step1.dolor_otro ? ` (especificó: ${step1.dolor_otro})` : ""}
-- Herramientas actuales: ${step1.herramientas_actuales.join(", ")}${step1.herramienta_otra ? ` (especificó: ${step1.herramienta_otra})` : ""}
-
-SITUACIÓN:
+- Dolores principales que él mismo identificó: ${step1.dolores_principales.join(", ")}${step1.dolor_otro ? ` (${step1.dolor_otro})` : ""}
+- Herramientas que usa hoy: ${step1.herramientas_actuales.join(", ")}${step1.herramienta_otra ? ` (${step1.herramienta_otra})` : ""}
 - Presupuesto: ${step2.presupuesto}
 - Urgencia: ${step2.urgencia}
-- Respuestas de situación: ${JSON.stringify(step2.respuestas_branch)}
-
-${step3?.respuestas_ia?.length ? `RESPUESTAS DE ANÁLISIS PROFUNDO:\n${step3.respuestas_ia.map((r: string, i: number) => `${i + 1}. ${r}`).join("\n")}` : ""}
-
+- Respuestas a preguntas de situación: ${JSON.stringify(step2.respuestas_branch)}
+${step3?.respuestas_ia?.length ? `- Respuestas a preguntas profundas:\n${step3.respuestas_ia.map((r: string, i: number) => `  ${i + 1}. ${r}`).join("\n")}` : ""}
 ${websiteContext}
+${benchmarksText}
 
-El resultado se divide en DOS AUDIENCIAS. Respeta estrictamente el tono y extensión de cada una:
+${guidance}
 
-═══ [CLIENTE] — Lo que ve el dueño del negocio ═══
-Tono: cercano, motivador, cero jerga técnica. Máximo 2-3 oraciones por campo.
+INSTRUCCIONES CRÍTICAS (léelas en orden):
 
-1. diagnostico_texto: 2-3 oraciones. Análisis breve que identifique el reto principal y por qué tiene potencial de mejora. Habla directamente al dueño ("tu negocio", "tu equipo"). No des la solución aquí — solo el diagnóstico.
+1. ANTES DE ESCRIBIR, identifica el patrón principal: ¿cuál es el problema #1 que este negocio tiene basado en SUS propias respuestas? Debes poder señalarlo con datos concretos de lo que dijo.
 
-2. beneficios: EXACTAMENTE 3 beneficios concretos. Cada uno: frase corta con resultado medible (porcentaje o tiempo). Relacionados con sus dolores específicos.
+2. GENERA EXACTAMENTE este JSON. No más campos, no menos. Cada campo tiene un propósito específico:
 
-3. caso_exito: Mini caso FICTICIO pero REALISTA de una empresa similar que inspire confianza:
-    - empresa: Nombre ficticio del mismo sector
-    - industria: Misma industria del prospecto
-    - problema: 1 oración (similar al dolor del prospecto)
-    - solucion: 1 oración
-    - resultado: 1 oración con cifras concretas
-
-4. siguiente_paso: 1 oración. Invitación a agendar llamada, personalizada según su urgencia (${step2.urgencia}).
-
-5. sugerencia_mejora: 2-3 oraciones. Una recomendación CONCRETA y ACCIONABLE que el dueño pueda entender y aplicar. Nada técnico. Ej: "Empezaría por organizar tus pedidos en una tabla compartida en lugar de usar WhatsApp. Eso solo ya te da visibilidad de lo que entra y sale." Debe sonar a consejo práctico de un consultor, no a propuesta comercial.
-
-6. plan_30_60_90 simplificado: Objeto con 3 fases. Cada fase: 1 oración corta (máximo 15 palabras) en lenguaje simple:
-    - dia_30: Primer paso concreto
-    - dia_60: Siguiente avance
-    - dia_90: Resultado final esperado
-
-═══ [ADMIN] — Lo que ve el profesional/freelancer en el CRM ═══
-Tono: analítico, directo, datos duros. Sin límite de extensión.
-
-7. titulo_servicio: Nombre de la solución (máx 5 palabras). Debe reflejar la necesidad principal.
-
-8. descripcion: 2-3 oraciones. QUÉ incluye la solución y CÓMO resuelve sus dolores específicos. Para el profesional, con suficiente detalle técnico.
-
-9. resumen_personalizado: 2-3 oraciones analizando sus oportunidades. Menciona industria y cómo negocios similares se han beneficiado.
-
-10. tiempo_ahorro: Estimación de horas semanales que ahorraría ("X-Y horas/semana"). Basado en tamaño y dolores.
-
-11. pasos_accion: EXACTAMENTE 3 pasos tácticos para que el profesional ejecute con el cliente. Específicos, no genéricos.
-
-12. diagnostico_ejecutivo: 2-3 oraciones. Resumen para que el profesional entienda el caso en 30 segundos. Reto principal, oportunidad clave, dirección recomendada. Escrito en tercera persona.
-
-13. prioridades_inmediatas: EXACTAMENTE 3 prioridades estratégicas (QUÉ atacar), diferentes de pasos_accion (CÓMO empezar).
-
-14. dato_industria: 1 estadística relevante sobre digitalización en ${step1.industria}.
-
-${websiteContext ? `15. hallazgos_web: Análisis del sitio web para el profesional:
-    - fortalezas: 2-3 cosas que el sitio hace bien
-    - brechas_criticas: 2-3 problemas detectados
-    - recomendaciones_tecnicas: 2-3 acciones técnicas concretas` : ''}
-
-REGLAS GENERALES:
-- NO uses frases genéricas — cada campo debe basarse en datos REALES del prospecto
-- Los campos [CLIENTE] deben ser entendibles para alguien sin conocimiento técnico
-- Los campos [ADMIN] pueden usar terminología profesional
-- Sé específico con la industria: si vende comida, habla de pedidos/menús; si es salud, habla de pacientes/citas
-- Beneficios y caso de éxito: creíbles, no exagerados
-
-Responde ÚNICAMENTE con JSON válido en este formato:
 {
-  "diagnostico_texto": "...",
-  "beneficios": ["...", "...", "..."],
-  "caso_exito": { "empresa": "...", "industria": "...", "problema": "...", "solucion": "...", "resultado": "..." },
-  "siguiente_paso": "...",
-  "sugerencia_mejora": "...",
-  "plan_30_60_90": { "dia_30": "...", "dia_60": "...", "dia_90": "..." },
-  "titulo_servicio": "...",
-  "descripcion": "...",
-  "resumen_personalizado": "...",
-  "tiempo_ahorro": "...",
-  "pasos_accion": ["...", "...", "..."],
-  "diagnostico_ejecutivo": "...",
-  "prioridades_inmediatas": ["...", "...", "..."],
-  "dato_industria": "..."${websiteContext ? `,
-  "hallazgos_web": { "fortalezas": ["..."], "brechas_criticas": ["..."], "recomendaciones_tecnicas": ["..."] }` : ''}
-}`
+  "diagnostico_texto": "Máximo 4 oraciones. Empieza con 'Notamos que...' o 'Vemos que...' y referencia UNA respuesta concreta del prospecto. Ej: 'Notamos que dedicas 15+ horas semanales a tareas manuales según tus respuestas.' Luego conecta eso con el impacto en su negocio. Sé quirúrgico, no genérico.",
+
+  "beneficios": [
+    "Beneficio 1 — Debe empezar con verbo concreto (recupera, elimina, duplica, reduce) e incluir número o porcentaje creíble. Ej: 'Recupera 8 horas semanales que hoy pierdes en cotizaciones manuales.'",
+    "Beneficio 2 — Debe estar conectado a OTRO dolor diferente del que usaste en el primero. Ej: 'Elimina la incertidumbre de no saber qué clientes están por renovar.'",
+    "Beneficio 3 — Debe ser un resultado aspiracional pero realista. Ej: 'Duplica tus clientes recurrentes con un sistema de seguimiento automático.'"
+  ],
+
+  "plan_30_60_90": {
+    "dia_30": "Acción concreta y específica para el primer mes. Incluye herramienta o método. Ej: 'Implementa Toggl o Clockify para registrar horas facturables.' Máx 12 palabras.",
+    "dia_60": "Acción del segundo mes. Debe construir sobre el primer paso. Ej: 'Automatiza facturación recurrente con Stripe o Deel.' Máx 12 palabras.",
+    "dia_90": "Resultado o consolidación. Ej: 'Sistema completo de seguimiento de clientes sin effort manual.' Máx 12 palabras."
+  },
+
+  "sugerencia_mejora": "EXACTAMENTE 2 oraciones. PRIMERA: La recomendación más importante que le darías en este momento, en lenguaje de dueño de negocio. SEGUNDA: El impacto específico que tendrá. Ej: 'Empieza por registrar tu tiempo esta semana con una herramienta gratuita como Toggl. Ese simple hábito te mostrará en 7 días exactamente dónde se están escapando tus horas facturables.'",
+
+  "caso_exito": {
+    "empresa": "Nombre ficticio pero creíble para esta industria",
+    "industria": "${step1.industria}",
+    "problema": "1 oración. Debe ser similar al dolor principal del prospecto.",
+    "solucion": "1 oración con la solución que implementaron.",
+    "resultado": "1 oración con 2 cifras concretas (porcentajes o tiempos)."
+  }
+}
+
+3. REGLAS DE ORO (violar cualquiera invalida el diagnóstico):
+- NO uses la palabra "transformación digital" NUNCA
+- NO uses "optimización", "mejora continua", "sinergia", "empoderar", "maximizar"
+- NO empieces ninguna oración con frases como "Basado en nuestro análisis" o "Hemos identificado"
+- CADA beneficio debe referirse a un dolor específico que el prospecto mencionó
+- Si el prospecto dijo que usa Excel, menciónalo. Si dijo que tiene X empleados, úsalo.
+- El plan_30_60_90 debe ser tan específico que el prospecto pueda googlear la herramienta que mencionas
+- El caso de éxito debe sonar a un negocio real, no a un cuento de marketing
+
+4. EJEMPLO de un buen diagnóstico vs malo:
+
+❌ MALO (genérico, suena a plantilla):
+"Tu negocio tiene oportunidades de mejora digital. Implementar herramientas tecnológicas puede ayudarte a ser más eficiente y productivo."
+
+✅ BUENO (específico, usa sus datos):
+"Notamos que como consultor independiente, inviertes más de 10 horas semanales en cotizaciones y facturación manual. Eso es tiempo que podrías estar dedicando a clientes que pagan. El problema no es que seas lento, es que no tienes las herramientas adecuadas para un profesional de tu nivel."`
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o",
-      max_tokens: 2200, // Extended for DiagnosisSummary + hallazgos_web fields
-      temperature: 0.45,
+      max_tokens: 1200,
+      temperature: 0.7,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: "Eres un consultor de transformación digital. Responde siempre con JSON válido." },
+        {
+          role: "system",
+          content: "Eres un consultor de negocios que habla con dueños de PYME como un colega experimentado, no como un vendedor. Tus diagnósticos son cortos, precisos y tan específicos que el dueño siente que realmente entiendes su negocio. Respondes siempre en JSON válido.",
+        },
         { role: "user", content: prompt },
       ],
     })
@@ -149,8 +127,7 @@ Responde ÚNICAMENTE con JSON válido en este formato:
 
     const parsed = JSON.parse(text)
 
-    // Validate required fields
-    const required = ["titulo_servicio", "descripcion", "diagnostico_texto", "beneficios", "siguiente_paso", "sugerencia_mejora", "resumen_personalizado", "tiempo_ahorro", "pasos_accion", "dato_industria", "caso_exito", "diagnostico_ejecutivo", "prioridades_inmediatas", "plan_30_60_90"]
+    const required = ["diagnostico_texto", "beneficios", "plan_30_60_90", "sugerencia_mejora", "caso_exito"]
     for (const key of required) {
       if (!parsed[key]) throw new Error(`Campo faltante: ${key}`)
     }
@@ -158,47 +135,69 @@ Responde ÚNICAMENTE con JSON válido en este formato:
     return NextResponse.json(parsed)
   } catch (error) {
     console.error("Error generando diagnóstico IA:", error)
-    return NextResponse.json(getFallback("general"))
+    const { wizardData } = await request.json().catch(() => ({ wizardData: null }))
+    const industria = wizardData?.step1?.industria ?? "general"
+    const industryCode = mapToIndustryCode(industria)
+    return NextResponse.json(getFallback(industria, industryCode))
   }
 }
 
-function getFallback(industria: string) {
+function mapToIndustryCode(industria: string): string {
+  const map: Record<string, string> = {
+    restaurante: "food",
+    retail: "retail",
+    servicios_profesionales: "servicios",
+    salud: "salud",
+    educacion: "educacion",
+    inmobiliaria: "servicios",
+    tecnologia: "servicios",
+    manufactura: "manufactura",
+    logistica: "manufactura",
+  }
+  return map[industria] ?? "otro"
+}
+
+function getFallback(industria: string, industryCode: string) {
+  const knowledge = getKnowledgePack(industryCode)
+  const fb = knowledge?.fallbackDiagnosis
+  const story = knowledge?.successStories?.[0]
+  const label = knowledge?.industryLabel ?? industria
+
+  if (fb) {
+    return {
+      diagnostico_texto: fb.texto,
+      beneficios: fb.beneficios,
+      plan_30_60_90: fb.plan,
+      sugerencia_mejora: fb.sugerencia,
+      caso_exito: story ?? {
+        empresa: "Negocio Digital MX",
+        industria,
+        problema: "Perdían horas cada semana en procesos manuales y seguimiento a clientes.",
+        solucion: "Implementaron un sistema de automatización y CRM digital adaptado a su operación.",
+        resultado: "Redujeron un 40% el tiempo operativo y aumentaron sus ventas un 25% en 3 meses.",
+      },
+    }
+  }
+
   return {
-    titulo_servicio: "Optimización Digital Integral",
-    descripcion: `Solución diseñada para negocios en el sector ${industria} que buscan digitalizar sus operaciones principales, reducir tareas manuales y obtener mayor visibilidad de sus métricas clave.`,
-    diagnostico_texto: `Hemos revisado tu situación y vemos que hay procesos que pueden mejorar con herramientas digitales. Tu equipo tiene potencial para trabajar de forma más eficiente y enfocarse en lo que realmente importa: hacer crecer el negocio.`,
+    diagnostico_texto: "Revisamos tu situación y encontramos un patrón claro: hay procesos que consumen más tiempo del necesario. La buena noticia es que los cambios más importantes no requieren gran inversión, solo un enfoque distinto.",
     beneficios: [
-      "Menos tiempo en tareas repetitivas",
-      "Más visibilidad de tus números clave",
-      "Mejor seguimiento a tus clientes",
-    ],
-    siguiente_paso: "Agenda tu llamada gratuita de 30 minutos y revisamos los pasos siguientes.",
-    sugerencia_mejora: `Te recomiendo empezar por algo simple: elige el proceso que más tiempo te consuma y busca una herramienta digital que lo simplifique. Muchos negocios como el tuyo empiezan con un Excel bien organizado y desde ahí dan el salto a algo más automatizado.`,
-    resumen_personalizado: `Tu negocio en el sector ${industria} tiene oportunidades claras de mejora digital. Con las herramientas adecuadas, podrías automatizar procesos clave y liberar tiempo para lo importante.`,
-    tiempo_ahorro: "8-15 horas por semana",
-    pasos_accion: [
-      "Identificar los 3 procesos que más tiempo consumen",
-      "Implementar herramientas digitales para los procesos prioritarios",
-      "Medir resultados y optimizar en las primeras 4 semanas",
-    ],
-    dato_industria: "Las PYMEs que adoptan herramientas digitales incrementan su productividad en promedio un 30%.",
-    caso_exito: {
-      empresa: "Negocio Digital MX",
-      industria: industria,
-      problema: "Perdían horas cada semana en procesos manuales y seguimiento a clientes.",
-      solucion: "Implementaron un sistema de automatización y CRM digital adaptado a su operación.",
-      resultado: "Redujeron un 40% el tiempo operativo y aumentaron sus ventas un 25% en 3 meses.",
-    },
-    diagnostico_ejecutivo: `Negocio en el sector ${industria} con oportunidades claras de digitalización. El reto principal son los procesos manuales que limitan el crecimiento. Se recomienda una intervención enfocada en automatización y visibilidad de métricas.`,
-    prioridades_inmediatas: [
-      "Digitalizar el proceso operativo que más tiempo consume",
-      "Establecer métricas de seguimiento para medir impacto",
-      "Estandarizar la comunicación con clientes en un solo canal",
+      "Menos tiempo en tareas que no generan ingresos",
+      "Más claridad sobre el estado real de tu negocio",
+      "Mejor relación con tus clientes gracias a seguimiento constante",
     ],
     plan_30_60_90: {
-      dia_30: "Diagnóstico detallado y piloto de automatización en el proceso más crítico",
-      dia_60: "Implementación completa con ajustes basados en datos del primer mes",
-      dia_90: "Escalado a procesos secundarios y medición de ROI consolidado",
+      dia_30: "Identifica el proceso que más tiempo consume y documéntalo",
+      dia_60: "Implementa una herramienta digital para ese proceso específico",
+      dia_90: "Evalúa resultados y repite con el siguiente proceso prioritario",
+    },
+    sugerencia_mejora: "Empieza por algo pequeño pero concreto: elige EL proceso que más te frustre y busca una herramienta específica para resolverlo. No intentes cambiar todo a la vez.",
+    caso_exito: {
+      empresa: "Crecimiento Digital MX",
+      industria,
+      problema: "Perdían tiempo valioso en procesos manuales y falta de seguimiento a clientes.",
+      solucion: "Implementaron herramientas digitales básicas enfocadas en sus procesos más críticos.",
+      resultado: "Redujeron un 40% el tiempo operativo y aumentaron su capacidad de atención en un 30%.",
     },
   }
 }

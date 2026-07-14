@@ -5,6 +5,7 @@ import { clasificarNegocio } from "./classifier"
 import { validarCoherencia } from "./guardrails"
 import { SYMPTOMS_CATALOG } from "./symptoms-catalog"
 import { ACTIONS_CATALOG } from "./actions-catalog"
+import { getKnowledgePack, getPromptGuidance, getIndustryBenchmarks } from "./knowledge"
 
 const MODEL = process.env.DIAGNOSTICO_MODEL || "gpt-4o"
 const MAX_RETRIES = Number(process.env.DIAGNOSTICO_MAX_RETRIES) || 2
@@ -45,11 +46,24 @@ function parseJson(text: string): unknown {
   return JSON.parse(cleaned)
 }
 
+function formatSymptomsList(sintomas: { id: string; nombre: string; descripcion: string }[]): string {
+  return sintomas.map((s) => `- ${s.id}: ${s.nombre} — ${s.descripcion}`).join("\n")
+}
+
 async function llamarLLMSintomas(
   campos: FormularioCampos,
   clasificacion: ClasificacionResult,
   intento: number = 0,
 ): Promise<SintomaResult[]> {
+  const knowledge = getKnowledgePack(clasificacion.industryCode)
+  const industrySymptoms = knowledge?.symptoms ?? []
+  const guidance = getPromptGuidance(clasificacion.industryCode)
+
+  const combinedSymptoms = [
+    ...SYMPTOMS_CATALOG.filter((s) => s.segmentosAplica.includes(clasificacion.segmento)),
+    ...industrySymptoms,
+  ]
+
   const systemPrompt = `Eres un analista de transformación digital para PYMEs mexicanas.
 Recibirás las respuestas de un cuestionario de diagnóstico y una lista de síntomas posibles.
 Tu tarea: identificar entre 2 y 5 síntomas de la lista que mejor describen la situación del negocio.
@@ -57,7 +71,7 @@ Para cada síntoma asigna un score del 1 al 5 según la severidad evidenciada en
 Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin bloques de código markdown.
 No inventes síntomas que no estén en la lista. No agregues texto fuera del JSON.`
 
-  const userPrompt = `INDUSTRIA: ${campos.industria}
+  const userPrompt = `INDUSTRIA: ${clasificacion.industryLabel ?? clasificacion.industryCode}${clasificacion.subsector ? ` (${clasificacion.subsector})` : ""}
 TAMAÑO: ${campos.tamano_empresa}
 HERRAMIENTAS ACTUALES: ${campos.herramientas_actuales.join(", ")}
 DOLORES DECLARADOS: ${campos.dolores_principales.join(", ")}
@@ -66,8 +80,10 @@ URGENCIA: ${campos.urgencia}
 SEGMENTO DETECTADO: ${clasificacion.segmento}
 MADUREZ DIGITAL: ${clasificacion.madurezDigital}/5
 
+${guidance ? `GUÍA ESPECÍFICA PARA ESTA INDUSTRIA:\n${guidance}\n` : ""}
+
 SÍNTOMAS DISPONIBLES (elige solo de esta lista):
-${SYMPTOMS_CATALOG.filter((s) => s.segmentosAplica.includes(clasificacion.segmento)).map((s) => `- ${s.id}: ${s.nombre} — ${s.descripcion}`).join("\n")}
+${formatSymptomsList(combinedSymptoms)}
 
 Responde SOLO con un array JSON. Cada elemento: { "sintomaId": string, "score": number (1-5), "evidencia": string }`
 
@@ -88,12 +104,18 @@ async function llamarLLMAcciones(
   sintomas: SintomaResult[],
   intento: number = 0,
 ): Promise<AccionResult[]> {
-  const accionesDisponibles = ACTIONS_CATALOG.filter(
+  const knowledge = getKnowledgePack(clasificacion.industryCode)
+  const industryActions = knowledge?.actions ?? []
+  const guidance = getPromptGuidance(clasificacion.industryCode)
+
+  const accionesBase = ACTIONS_CATALOG.filter(
     (a) =>
       a.segmentosAplica.includes(clasificacion.segmento) &&
       clasificacion.madurezDigital >= a.madurezMinima &&
       clasificacion.madurezDigital <= a.madurezMaxima,
   )
+
+  const accionesDisponibles = [...accionesBase, ...industryActions]
 
   const systemPrompt = `Eres un consultor de digitalización para PYMEs mexicanas con presupuesto limitado.
 Recibirás el perfil del negocio, sus síntomas detectados y un catálogo de acciones disponibles.
@@ -103,10 +125,13 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin bloques de códi
 No inventes acciones fuera del catálogo.`
 
   const userPrompt = `PERFIL:
+- Industria: ${clasificacion.industryLabel ?? clasificacion.industryCode}${clasificacion.subsector ? ` (${clasificacion.subsector})` : ""}
 - Segmento: ${clasificacion.segmento}
 - Madurez digital: ${clasificacion.madurezDigital}/5
 - Perfil de riesgo: ${clasificacion.perfilRiesgo}
 - Presupuesto: ${"<segun formulario>"}
+
+${guidance ? `GUÍA ESPECÍFICA PARA ESTA INDUSTRIA:\n${guidance}\n` : ""}
 
 SÍNTOMAS DETECTADOS:
 ${sintomas.map((s) => `- ${s.sintomaId} (score: ${s.score}): ${s.evidencia}`).join("\n")}
@@ -134,6 +159,11 @@ async function llamarLLMRedaccion(
   acciones: AccionResult[],
   intento: number = 0,
 ): Promise<RedaccionResult> {
+  const knowledge = getKnowledgePack(clasificacion.industryCode)
+  const benchmarks = getIndustryBenchmarks(clasificacion.industryCode)
+  const guidance = getPromptGuidance(clasificacion.industryCode)
+  const story = knowledge?.successStories?.[0]
+
   const systemPrompt = `Eres un consultor de negocios que habla de manera directa, clara y sin tecnicismos.
 Recibirás un diagnóstico estructurado de una PYME mexicana en formato JSON.
 Tu tarea: convertir ese JSON en un diagnóstico en español sencillo, como si se lo explicaras
@@ -142,6 +172,14 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin bloques de códi
 No tomes decisiones nuevas — solo comunica lo que ya está en el JSON de entrada.`
 
   const userPrompt = `Convierte este diagnóstico estructurado en un diagnóstico narrativo en español sencillo:
+
+INDUSTRIA: ${clasificacion.industryLabel ?? clasificacion.industryCode}${clasificacion.subsector ? ` (${clasificacion.subsector})` : ""}
+
+${guidance ? `GUÍA DE CONTEXTO:\n${guidance}\n` : ""}
+
+${benchmarks.length ? `BENCHMARKS DE LA INDUSTRIA (úsalos para contexto del diagnóstico):\n${benchmarks.map((b) => `- ${b.metrica}: ${b.valor} — ${b.descripcion}`).join("\n")}\n` : ""}
+
+${story ? `CASO DE ÉXITO DE REFERENCIA:\nEmpresa: ${story.empresa}\nProblema: ${story.problema}\nSolución: ${story.solucion}\nResultado: ${story.resultado}\n` : ""}
 
 CLASIFICACIÓN:
 - Madurez digital: ${clasificacion.madurezDigital}/5
@@ -177,6 +215,9 @@ Responde SOLO con JSON con este formato:
 
 function generarFallback(campos: FormularioCampos): DiagnosticoResult {
   const clasificacion = clasificarNegocio(campos)
+  const knowledge = getKnowledgePack(clasificacion.industryCode)
+  const fb = knowledge?.fallbackDiagnosis
+
   return {
     clasificacion,
     sintomas: [
@@ -189,17 +230,23 @@ function generarFallback(campos: FormularioCampos): DiagnosticoResult {
       { accionId: "auditoria_procesos", prioridad: 3, justificacion: "Identificar áreas específicas de mejora" },
     ],
     redaccion: {
-      resumen: "No pudimos analizar todos los detalles, pero basándonos en tu perfil, estos son los primeros pasos recomendados.",
+      resumen: fb?.texto ?? "No pudimos analizar todos los detalles, pero basándonos en tu perfil, estos son los primeros pasos recomendados.",
       sintomasPrincipales: [
         "Tus procesos son mayormente manuales",
         "No hay medición de resultados clave",
         "La comunicación con clientes necesita organizarse",
       ],
-      planDeAccion: [
-        { paso: "Organiza tu comunicación", descripcion: "Implementa WhatsApp Business para separar clientes de lo personal", urgencia: "inmediata" },
-        { paso: "Capacita a tu equipo", descripcion: "Prepara a tu equipo para usar herramientas digitales básicas", urgencia: "corto" },
-        { paso: "Audita tus procesos", descripcion: "Identifica qué procesos manuales puedes digitalizar primero", urgencia: "largo" },
-      ],
+      planDeAccion: fb
+        ? [
+            { paso: "Primer mes", descripcion: fb.plan.dia_30, urgencia: "inmediata" },
+            { paso: "Segundo mes", descripcion: fb.plan.dia_60, urgencia: "corto" },
+            { paso: "Tercer mes", descripcion: fb.plan.dia_90, urgencia: "largo" },
+          ]
+        : [
+            { paso: "Organiza tu comunicación", descripcion: "Implementa WhatsApp Business para separar clientes de lo personal", urgencia: "inmediata" },
+            { paso: "Capacita a tu equipo", descripcion: "Prepara a tu equipo para usar herramientas digitales básicas", urgencia: "corto" },
+            { paso: "Audita tus procesos", descripcion: "Identifica qué procesos manuales puedes digitalizar primero", urgencia: "largo" },
+          ],
       scoreTexto: `Tu negocio está en nivel ${clasificacion.madurezDigital} de 5 de madurez digital`,
     },
   }

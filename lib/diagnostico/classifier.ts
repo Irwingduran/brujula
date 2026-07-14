@@ -1,4 +1,5 @@
 import type { FormularioCampos, ClasificacionResult } from "./schemas"
+import { detectSubsector } from "./knowledge"
 
 const INDUSTRY_MAP: Record<string, string> = {
   restaurante: "food",
@@ -77,10 +78,34 @@ export function clasificarNegocio(campos: FormularioCampos): ClasificacionResult
   const madurezDigital = calcularMadurez(campos.herramientas_actuales)
   const perfilRiesgo = calcularPerfilRiesgo(campos.urgencia, campos.presupuesto)
 
+  const subsector = detectSubsector(industryCode, {
+    industria_otra: campos.industria_otra,
+    dolores_principales: campos.dolores_principales,
+    respuestas_branch: campos.respuestas_branch,
+  })
+
   return {
     segmento,
     madurezDigital,
     perfilRiesgo,
     industryCode,
+    industryLabel: getIndustryLabel(campos.industria),
+    subsector,
   }
+}
+
+function getIndustryLabel(industria: string): string {
+  const labels: Record<string, string> = {
+    restaurante: "Restaurante / Alimentos",
+    retail: "Retail / Tienda",
+    servicios_profesionales: "Servicios Profesionales",
+    salud: "Salud / Bienestar",
+    educacion: "Educación / Capacitación",
+    inmobiliaria: "Inmobiliaria",
+    tecnologia: "Tecnología",
+    manufactura: "Manufactura / Producción",
+    logistica: "Logística / Transporte",
+    otra: "Otra",
+  }
+  return labels[industria] ?? industria
 }
