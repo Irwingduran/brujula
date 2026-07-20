@@ -2,6 +2,7 @@ import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
+import { mapIndustria } from "@/lib/diagnostico/classifier"
 import type { ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
 
 export async function POST(request: Request) {
@@ -75,12 +76,7 @@ ${aiDiag.hallazgos_web ? `- Fortalezas web: ${aiDiag.hallazgos_web.fortalezas.jo
 - Industry fit: ${score.industria_fit}/10`
       : ""
 
-    const industryCodeMap: Record<string, string> = {
-      restaurante: "servicios", retail: "retail", servicios_profesionales: "servicios",
-      salud: "servicios", educacion: "servicios", inmobiliaria: "servicios",
-      tecnologia: "servicios", manufactura: "servicios", logistica: "servicios",
-    }
-    const industryCode = industryCodeMap[lead.industria] ?? "servicios_profesionales"
+    const industryCode = mapIndustria(lead.industria)
     const ragContext = await getPromptGuidance(industryCode, {
       query: `Briefing para llamada con ${lead.industria}. Dolores: ${lead.dolores_principales.join(", ")}. Presupuesto: ${lead.presupuesto}. Urgencia: ${lead.urgencia}`,
       segmento: null,

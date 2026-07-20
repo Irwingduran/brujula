@@ -2,21 +2,7 @@ import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getKnowledgePack, getPromptGuidance } from "@/lib/diagnostico/knowledge"
-
-function mapToIndustryCode(industria: string): string {
-  const map: Record<string, string> = {
-    restaurante: "servicios",
-    retail: "retail",
-    servicios_profesionales: "servicios",
-    salud: "servicios",
-    educacion: "servicios",
-    inmobiliaria: "servicios",
-    tecnologia: "servicios",
-    manufactura: "servicios",
-    logistica: "servicios",
-  }
-  return map[industria] ?? "servicios"
-}
+import { mapIndustria } from "@/lib/diagnostico/classifier"
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 })
     }
 
-    const industryCode = mapToIndustryCode(lead.industria)
+    const industryCode = mapIndustria(lead.industria)
     const knowledge = getKnowledgePack(industryCode)
     const industryLabel = knowledge?.industryLabel ?? lead.industria
 
@@ -139,7 +125,7 @@ REGLAS:
     const { leadId } = await request.json().catch(() => ({ leadId: null }))
     if (leadId) {
       const lead = await prisma.lead.findUnique({ where: { id: leadId } }).catch(() => null)
-      const industryLabel = lead ? (getKnowledgePack(mapToIndustryCode(lead.industria))?.industryLabel ?? lead.industria) : "PYME"
+      const industryLabel = lead ? (getKnowledgePack(mapIndustria(lead.industria))?.industryLabel ?? lead.industria) : "PYME"
       const fb = getFallback(lead?.industria ?? "general", industryLabel)
       if (lead) {
         await prisma.lead.update({ where: { id: leadId }, data: { plan_desarrollo: fb as any } }).catch(() => {})

@@ -25,7 +25,7 @@ const INDUSTRY_MAP: Record<string, string> = {
   software: "tecnologia",
 }
 
-function mapIndustria(industria: string): string {
+export function mapIndustria(industria: string): string {
   const key = industria.toLowerCase().replace(/\s+/g, "_")
   return INDUSTRY_MAP[key] ?? "otro"
 }

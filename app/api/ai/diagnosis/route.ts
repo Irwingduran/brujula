@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { getKnowledgePack, getIndustryBenchmarks, getPromptGuidance } from "@/lib/diagnostico/knowledge"
+import { mapIndustria } from "@/lib/diagnostico/classifier"
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     const step2 = wizardData.step2
     const step3 = wizardData.step3
 
-  const industryCode = mapToIndustryCode(step1.industria)
+  const industryCode = mapIndustria(step1.industria)
   const knowledge = getKnowledgePack(industryCode)
   const industryLabel = knowledge?.industryLabel ?? step1.industria
 
@@ -114,24 +115,9 @@ REGLAS: No menciones "transformación digital", "optimización", "mejora continu
     console.error("Error generando diagnóstico IA:", error)
     const { wizardData } = await request.json().catch(() => ({ wizardData: null }))
     const industria = wizardData?.step1?.industria ?? "general"
-    const industryCode = mapToIndustryCode(industria)
+    const industryCode = mapIndustria(industria)
     return NextResponse.json(getFallback(industria, industryCode))
   }
-}
-
-function mapToIndustryCode(industria: string): string {
-  const map: Record<string, string> = {
-    restaurante: "servicios",
-    retail: "retail",
-    servicios_profesionales: "servicios",
-    salud: "servicios",
-    educacion: "servicios",
-    inmobiliaria: "servicios",
-    tecnologia: "servicios",
-    manufactura: "servicios",
-    logistica: "servicios",
-  }
-  return map[industria] ?? "servicios"
 }
 
 function getFallback(industria: string, industryCode: string) {

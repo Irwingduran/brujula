@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
+import { mapIndustria } from "@/lib/diagnostico/classifier"
 
 // Tipado opcional para websiteAnalysis (recomendado para TypeScript estricto)
 interface WebsiteAnalysis {
@@ -143,12 +144,7 @@ export async function POST(request: Request) {
 
     const doloresText = step1.dolores_principales.join(", ")
 
-    const industryCodeMap: Record<string, string> = {
-      restaurante: "servicios", retail: "retail", servicios_profesionales: "servicios",
-      salud: "servicios", educacion: "servicios", inmobiliaria: "servicios",
-      tecnologia: "servicios", manufactura: "servicios", logistica: "servicios",
-    }
-    const industryCode = industryCodeMap[step1.industria] ?? "servicios_profesionales"
+    const industryCode = mapIndustria(step1.industria)
     const ragContext = await getPromptGuidance(industryCode, {
       query: `Preguntas para ${step1.industria}. Dolores: ${doloresText}. Tamaño: ${step1.tamano_empresa}. Herramientas: ${step1.herramientas_actuales.join(", ")}`,
       segmento: null,
