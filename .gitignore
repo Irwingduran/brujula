@@ -9,12 +9,10 @@ out
 /lib/generated/prisma
 /RAG
 
-# Documentation and scripts (local only, except specific dirs)
+# Documentation and scripts (local only)
 /scripts/*
 !/scripts/rag/
-/docs/*
-!/docs/rag/
-!/docs/admin/
+/docs
 
 # macOS system files
 .DS_Store
