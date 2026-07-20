@@ -4,13 +4,14 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { SquaresFour, Columns, Flame, Wrench, UserCircle, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
+import { SquaresFour, Columns, Flame, Wrench, UserCircle, BookOpen, ArrowSquareOut, SignOut } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: SquaresFour },
   { href: "/admin/pipeline", label: "Pipeline", icon: Columns },
   { href: "/admin/servicios", label: "Servicios", icon: Wrench },
+  { href: "/admin/knowledge", label: "Knowledge", icon: BookOpen },
   { href: "/admin/usuarios", label: "Usuarios", icon: UserCircle },
 ]
 
