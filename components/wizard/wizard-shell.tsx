@@ -9,6 +9,7 @@ import { Step3Analysis } from "./step-3-analysis"
 import { Step4Results } from "./step-4-results"
 import { calculateScore } from "@/lib/scoring"
 import { generateDiagnosis } from "@/lib/diagnosis"
+import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 import type {
   WizardData,
   WizardStep1Data,
@@ -51,6 +52,9 @@ export function WizardShell() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null)
   const [score, setScore] = useState<ScoreBreakdown | null>(null)
   const [leadId, setLeadId] = useState<string | null>(null)
+  const [v2Diagnosis, setV2Diagnosis] = useState<DiagnosticoResult | null>(null)
+  const [v2Loading, setV2Loading] = useState(false)
+  const [v2Progress, setV2Progress] = useState<{ paso: number; total: number; descripcion: string } | null>(null)
 
   const handleStep1Complete = useCallback((data: WizardStep1Data, analysis?: WebsiteAnalysis) => {
     setWizardData((prev) => ({
@@ -88,7 +92,7 @@ export function WizardShell() {
         const lead = await res.json()
         setLeadId(lead.id)
 
-        // Trigger pipeline v2 (structured diagnosis with knowledge packs) — non-blocking
+        // Trigger pipeline v2 via SSE (structured diagnosis with RAG)
         const formData = {
           industria: updatedData.step1!.industria,
           industria_otra: updatedData.step1!.industria_otra,
@@ -100,11 +104,68 @@ export function WizardShell() {
           respuestas_branch: updatedData.step2!.respuestas_branch,
           respuestas_ia: updatedData.step3?.respuestas_ia,
         }
-        fetch("/api/diagnostico", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ formData, leadId: lead.id, _startTime: Date.now() }),
-        }).catch(() => {})
+
+        setV2Loading(true)
+        try {
+          const response = await fetch("/api/diagnostico/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ formData, leadId: lead.id }),
+          })
+
+          if (!response.ok) throw new Error("Stream failed")
+
+          const reader = response.body?.getReader()
+          if (!reader) throw new Error("No reader")
+
+          const decoder = new TextDecoder()
+          let buffer = ""
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split("\n")
+            buffer = lines.pop() || ""
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const event = JSON.parse(line.slice(6))
+                  if (event.tipo === "progreso") {
+                    setV2Progress({ paso: event.paso, total: event.total, descripcion: event.descripcion })
+                  } else if (event.tipo === "completado") {
+                    setV2Diagnosis({
+                      clasificacion: event.clasificacion,
+                      sintomas: event.sintomas,
+                      acciones: event.acciones,
+                      redaccion: event.redaccion,
+                    })
+                    setV2Loading(false)
+                    setV2Progress(null)
+                    // Trigger briefing after v2 completes (fire-and-forget)
+                    if (lead.id) {
+                      fetch("/api/ai/briefing", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ leadId: lead.id }),
+                      }).catch(() => {})
+                    }
+                  } else if (event.tipo === "error") {
+                    console.warn("[Wizard] Pipeline v2 error:", event.mensaje)
+                    setV2Loading(false)
+                    setV2Progress(null)
+                  }
+                } catch {}
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("[Wizard] SSE connection failed:", error)
+          setV2Loading(false)
+          setV2Progress(null)
+        }
       }
     } catch {
       // Silent fail
@@ -294,6 +355,9 @@ export function WizardShell() {
                     telefono={wizardData.step2.telefono}
                     leadId={leadId}
                     wizardData={wizardData}
+                    v2Diagnosis={v2Diagnosis}
+                    v2Loading={v2Loading}
+                    v2Progress={v2Progress}
                   />
                 )}
               </motion.div>

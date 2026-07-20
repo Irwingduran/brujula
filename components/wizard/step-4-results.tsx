@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
 import type { DiagnosisResult, ScoreBreakdown, WizardData, AIDiagnosisResult } from "@/lib/types"
+import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 import { CheckCircle } from "@phosphor-icons/react"
 import { DiagnosisSummary } from "@/components/diagnosis/diagnosis-summary"
+import { V2DiagnosisSummary } from "@/components/diagnosis/v2-diagnosis-summary"
 import { ResultadoCTAs } from "@/components/diagnosis/resultado-ctas"
 
 interface Step4Props {
@@ -15,6 +17,16 @@ interface Step4Props {
   telefono: string
   leadId: string | null
   wizardData: WizardData
+  v2Diagnosis?: DiagnosticoResult | null
+  v2Loading?: boolean
+  v2Progress?: { paso: number; total: number; descripcion: string } | null
+}
+
+function getPlanArray(d: DiagnosisResult | AIDiagnosisResult): string[] {
+  if ("plan_90_dias" in d && d.plan_90_dias) {
+    return [d.plan_90_dias.mes_1, d.plan_90_dias.mes_2, d.plan_90_dias.mes_3]
+  }
+  return ["", "", ""]
 }
 
 function getReadinessLevel(total: number): { label: string; description: string; color: string; bgColor: string; percentage: number } {
@@ -101,23 +113,19 @@ function AnimatedNumber({ value, suffix }: { value: number; suffix?: string }) {
   return <span>{count}{suffix}</span>
 }
 
-export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId, wizardData }: Step4Props) {
+export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId, wizardData, v2Diagnosis, v2Loading, v2Progress }: Step4Props) {
   const readiness = getReadinessLevel(score.total)
   const [aiDiagnosis, setAiDiagnosis] = useState<AIDiagnosisResult | null>(null)
   const [aiLoading, setAiLoading] = useState(true)
   const fetchedRef = useRef(false)
 
-  // Use local diagnosis as immediate fallback while AI loads
-  const displayDiagnosis = aiDiagnosis ?? diagnosis
-  const displayBeneficios = aiDiagnosis?.beneficios ?? diagnosis.beneficios
-  const displayPlan = aiDiagnosis?.plan_30_60_90
-    ? [`30d: ${aiDiagnosis.plan_30_60_90.dia_30}`, `60d: ${aiDiagnosis.plan_30_60_90.dia_60}`, `90d: ${aiDiagnosis.plan_30_60_90.dia_90}`]
-    : diagnosis.plan_30_60_90
-      ? [`30d: ${diagnosis.plan_30_60_90.dia_30}`, `60d: ${diagnosis.plan_30_60_90.dia_60}`, `90d: ${diagnosis.plan_30_60_90.dia_90}`]
-      : ["Identifica el proceso clave para empezar", "Implementa cambios priorizados", "Mide resultados y escala"]
+  // Use v2 if available, else AI diagnosis, else static
+  const hasV2 = !!v2Diagnosis
+  const displayDiagnosis = hasV2 ? null : (aiDiagnosis ?? diagnosis)
+  const displayPlan = hasV2 ? [] : getPlanArray(displayDiagnosis!)
 
   useEffect(() => {
-    if (fetchedRef.current) return
+    if (hasV2 || fetchedRef.current) return
     fetchedRef.current = true
 
     fetch("/api/ai/diagnosis", {
@@ -147,7 +155,7 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
       })
       .catch(() => setAiDiagnosis(null))
       .finally(() => setAiLoading(false))
-  }, [wizardData, leadId])
+  }, [wizardData, leadId, hasV2])
 
   return (
     <div className="flex flex-col gap-8">
@@ -174,18 +182,47 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
         </p>
       </motion.div>
 
-      <DiagnosisSummary
-        businessName={wizardData.websiteAnalysis?.titulo}
-        readinessLabel={readiness.label}
-        readinessColor={readiness.color}
-        readinessDescription={readiness.description}
-        diagnosticText={displayDiagnosis.diagnostico_texto || "Identificamos áreas específicas donde puedes mejorar tu operación. Revisa las recomendaciones abajo."}
-        beneficios={displayBeneficios}
-        plan={displayPlan}
-        sugerenciaMejora={aiDiagnosis?.sugerencia_mejora}
-        casoExito={aiDiagnosis?.caso_exito}
-        isLoading={aiLoading && !displayDiagnosis.diagnostico_texto}
-      />
+      {/* Diagnosis Summary — v2 or v1 */}
+      {hasV2 ? (
+        <V2DiagnosisSummary diagnostico={v2Diagnosis!} />
+      ) : v2Loading ? (
+        <section className="glass-card rounded-2xl overflow-hidden">
+          <div className="p-6 sm:p-8 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-medium text-primary">Analizando tu negocio...</span>
+            </div>
+            {v2Progress && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{v2Progress.descripcion}</span>
+                  <span>{v2Progress.paso}/{v2Progress.total}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                  <motion.div
+                    className="h-full gradient-primary rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(v2Progress.paso / v2Progress.total) * 100}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+            )}
+            {!v2Progress && (
+              <p className="text-sm text-muted-foreground">Preparando tu diagnóstico personalizado...</p>
+            )}
+          </div>
+        </section>
+      ) : (
+        <DiagnosisSummary
+          patronNegocio={displayDiagnosis!.patron_negocio || "Revisa las recomendaciones abajo para entender el patrón de tu negocio."}
+          riesgoPrincipal={displayDiagnosis!.riesgo_principal || ""}
+          cambioClave={displayDiagnosis!.cambio_clave || ""}
+          plan={displayPlan}
+          casoExito={aiDiagnosis?.caso_exito}
+          isLoading={aiLoading && !displayDiagnosis!.patron_negocio}
+        />
+      )}
 
       {/* CTAs */}
       {leadId && (
