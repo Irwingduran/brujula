@@ -20,6 +20,7 @@ interface Step4Props {
   v2Diagnosis?: DiagnosticoResult | null
   v2Loading?: boolean
   v2Progress?: { paso: number; total: number; descripcion: string } | null
+  v2Failed?: boolean
 }
 
 function getPlanArray(d: DiagnosisResult | AIDiagnosisResult): string[] {
@@ -113,21 +114,24 @@ function AnimatedNumber({ value, suffix }: { value: number; suffix?: string }) {
   return <span>{count}{suffix}</span>
 }
 
-export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId, wizardData, v2Diagnosis, v2Loading, v2Progress }: Step4Props) {
+export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId, wizardData, v2Diagnosis, v2Loading, v2Progress, v2Failed }: Step4Props) {
   const readiness = getReadinessLevel(score.total)
   const [aiDiagnosis, setAiDiagnosis] = useState<AIDiagnosisResult | null>(null)
-  const [aiLoading, setAiLoading] = useState(true)
+  const [aiLoading, setAiLoading] = useState(false)
   const fetchedRef = useRef(false)
 
   // Use v2 if available, else AI diagnosis, else static
   const hasV2 = !!v2Diagnosis
+  const showV1Fallback = !hasV2 && !!v2Failed
   const displayDiagnosis = hasV2 ? null : (aiDiagnosis ?? diagnosis)
   const displayPlan = hasV2 ? [] : getPlanArray(displayDiagnosis!)
 
+  // Only fetch v1 if v2 explicitly failed (never while v2 is in progress)
   useEffect(() => {
-    if (hasV2 || fetchedRef.current) return
+    if (hasV2 || fetchedRef.current || (!v2Failed && v2Loading !== false)) return
     fetchedRef.current = true
 
+    setAiLoading(true)
     fetch("/api/ai/diagnosis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -136,26 +140,10 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
       .then((res) => res.json())
       .then((data: AIDiagnosisResult) => {
         setAiDiagnosis(data)
-
-        if (leadId && data?.diagnostico_texto) {
-          fetch(`/api/leads/${leadId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ diagnostico_ia: data }),
-          })
-            .then(() => {
-              fetch("/api/ai/briefing", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ leadId }),
-              }).catch(() => {})
-            })
-            .catch(() => {})
-        }
       })
       .catch(() => setAiDiagnosis(null))
       .finally(() => setAiLoading(false))
-  }, [wizardData, leadId, hasV2])
+  }, [wizardData, leadId, hasV2, v2Failed, v2Loading])
 
   return (
     <div className="flex flex-col gap-8">

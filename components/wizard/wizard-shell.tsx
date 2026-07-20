@@ -54,6 +54,7 @@ export function WizardShell() {
   const [leadId, setLeadId] = useState<string | null>(null)
   const [v2Diagnosis, setV2Diagnosis] = useState<DiagnosticoResult | null>(null)
   const [v2Loading, setV2Loading] = useState(false)
+  const [v2Failed, setV2Failed] = useState(false)
   const [v2Progress, setV2Progress] = useState<{ paso: number; total: number; descripcion: string } | null>(null)
 
   const handleStep1Complete = useCallback((data: WizardStep1Data, analysis?: WebsiteAnalysis) => {
@@ -79,6 +80,7 @@ export function WizardShell() {
     const d = generateDiagnosis(updatedData)
     setScore(s)
     setDiagnosis(d)
+    setV2Loading(true) // Must be before setCurrentStep so Step4 sees loading state
     setCurrentStep(3)
     window.scrollTo({ top: 0, behavior: "smooth" })
 
@@ -105,8 +107,8 @@ export function WizardShell() {
           respuestas_ia: updatedData.step3?.respuestas_ia,
         }
 
-        setV2Loading(true)
         try {
+          setV2Failed(false)
           const response = await fetch("/api/diagnostico/stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -155,6 +157,7 @@ export function WizardShell() {
                   } else if (event.tipo === "error") {
                     console.warn("[Wizard] Pipeline v2 error:", event.mensaje)
                     setV2Loading(false)
+                    setV2Failed(true)
                     setV2Progress(null)
                   }
                 } catch {}
@@ -164,6 +167,7 @@ export function WizardShell() {
         } catch (error) {
           console.warn("[Wizard] SSE connection failed:", error)
           setV2Loading(false)
+          setV2Failed(true)
           setV2Progress(null)
         }
       }
@@ -358,6 +362,7 @@ export function WizardShell() {
                     v2Diagnosis={v2Diagnosis}
                     v2Loading={v2Loading}
                     v2Progress={v2Progress}
+                    v2Failed={v2Failed}
                   />
                 )}
               </motion.div>
