@@ -56,7 +56,7 @@ export async function POST(
           id: lead.id,
           industria: lead.industria,
           score: { total: scoreTotal },
-          diagnostico: lead.diagnostico as unknown as DiagnosisResult,
+          diagnostico: lead.diagnostico as any,
         })
       } catch (e) {
         console.error("Error notificando lead HOT:", e)

@@ -29,7 +29,7 @@ const itemVariants = {
 }
 
 export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Props) {
-  const branches = getBranchesForPains(step1Data.dolores_principales)
+  const branches = getBranchesForPains(step1Data.dolores_principales, step1Data.industria)
 
   const [branchAnswers, setBranchAnswers] = useState<Record<string, string>>(
     data?.respuestas_branch ?? {}
@@ -87,8 +87,8 @@ export function Step2Situation({ step1Data, data, onComplete, onBack }: Step2Pro
 
       {/* Dynamic branch questions */}
       {branches.map((branch, index) => (
-        <motion.div 
-          key={branch.pain} 
+        <motion.div
+          key={branch.pain ?? `industry-${branch.title}`}
           variants={itemVariants}
           className="glass-card rounded-2xl p-6"
         >

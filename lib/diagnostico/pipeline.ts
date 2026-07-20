@@ -57,7 +57,11 @@ async function llamarLLMSintomas(
 ): Promise<SintomaResult[]> {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const industrySymptoms = knowledge?.symptoms ?? []
-  const guidance = getPromptGuidance(clasificacion.industryCode)
+  const guidance = await getPromptGuidance(clasificacion.industryCode, {
+    query: `Síntomas: ${campos.dolores_principales.join(", ")}. Industria: ${clasificacion.industryCode}. Herramientas: ${campos.herramientas_actuales.join(", ")}`,
+    segmento: clasificacion.segmento,
+    topK: 5,
+  })
 
   const combinedSymptoms = [
     ...SYMPTOMS_CATALOG.filter((s) => s.segmentosAplica.includes(clasificacion.segmento)),
@@ -106,7 +110,11 @@ async function llamarLLMAcciones(
 ): Promise<AccionResult[]> {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const industryActions = knowledge?.actions ?? []
-  const guidance = getPromptGuidance(clasificacion.industryCode)
+  const guidance = await getPromptGuidance(clasificacion.industryCode, {
+    query: `Acciones para: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}. Presupuesto y madurez: ${clasificacion.madurezDigital}/5`,
+    segmento: clasificacion.segmento,
+    topK: 5,
+  })
 
   const accionesBase = ACTIONS_CATALOG.filter(
     (a) =>
@@ -160,8 +168,15 @@ async function llamarLLMRedaccion(
   intento: number = 0,
 ): Promise<RedaccionResult> {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
-  const benchmarks = getIndustryBenchmarks(clasificacion.industryCode)
-  const guidance = getPromptGuidance(clasificacion.industryCode)
+  const benchmarks = await getIndustryBenchmarks(clasificacion.industryCode, {
+    query: `Benchmarks para: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}`,
+    segmento: clasificacion.segmento,
+  })
+  const guidance = await getPromptGuidance(clasificacion.industryCode, {
+    query: `Redacción diagnóstico: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}. Acciones: ${acciones.map((a) => a.accionId).join(", ")}`,
+    segmento: clasificacion.segmento,
+    topK: 6,
+  })
   const story = knowledge?.successStories?.[0]
 
   const systemPrompt = `Eres un consultor de negocios que habla de manera directa, clara y sin tecnicismos.

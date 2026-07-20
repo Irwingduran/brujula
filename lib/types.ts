@@ -128,13 +128,22 @@ export interface ScoreBreakdown {
 // ============================
 
 export interface DiagnosisResult {
-  titulo_servicio: string
-  descripcion: string
-  diagnostico_texto: string
-  roi_estimado: string
-  precio_rango: string
-  beneficios: string[]
-  siguiente_paso: string
+  patron_negocio: string
+  riesgo_principal: string
+  cambio_clave: string
+  plan_90_dias: {
+    mes_1: string
+    mes_2: string
+    mes_3: string
+  }
+  // Legacy fields for backward compat with stored data
+  titulo_servicio?: string
+  descripcion?: string
+  diagnostico_texto?: string
+  roi_estimado?: string
+  precio_rango?: string
+  beneficios?: string[]
+  siguiente_paso?: string
   plan_30_60_90?: {
     dia_30: string
     dia_60: string
@@ -143,9 +152,14 @@ export interface DiagnosisResult {
 }
 
 export interface AIDiagnosisResult {
-  // ─── [CLIENTE] — Lo que ve el dueño del negocio ───
-  diagnostico_texto: string
-  beneficios: string[]
+  patron_negocio: string
+  riesgo_principal: string
+  cambio_clave: string
+  plan_90_dias: {
+    mes_1: string
+    mes_2: string
+    mes_3: string
+  }
   caso_exito: {
     empresa: string
     industria: string
@@ -153,14 +167,8 @@ export interface AIDiagnosisResult {
     solucion: string
     resultado: string
   }
-  sugerencia_mejora: string
-  plan_30_60_90: {
-    dia_30: string
-    dia_60: string
-    dia_90: string
-  }
 
-  // ─── [ADMIN] — Lo que ve el profesional en el CRM (opcional, se genera por separado) ───
+  // ─── [ADMIN] — Campos legacy del CRM (opcional) ───
   titulo_servicio?: string
   descripcion?: string
   resumen_personalizado?: string
@@ -169,6 +177,14 @@ export interface AIDiagnosisResult {
   diagnostico_ejecutivo?: string
   prioridades_inmediatas?: string[]
   dato_industria?: string
+  diagnostico_texto?: string
+  beneficios?: string[]
+  sugerencia_mejora?: string
+  plan_30_60_90?: {
+    dia_30: string
+    dia_60: string
+    dia_90: string
+  }
 
   hallazgos_web?: {
     fortalezas: string[]
@@ -276,7 +292,8 @@ export interface BranchField {
 }
 
 export interface BranchConfig {
-  pain: PainPoint
+  pain?: PainPoint
   title: string
   fields: BranchField[]
+  industries?: string[]
 }

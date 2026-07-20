@@ -614,6 +614,131 @@ export const BRANCH_CONFIGS: BranchConfig[] = [
       },
     ],
   },
+  // Industry-specific: Servicios Profesionales
+  {
+    industries: ["servicios_profesionales"],
+    title: "Captación de clientes",
+    fields: [
+      {
+        id: "como_captas_clientes",
+        label: "Cómo captas nuevos clientes actualmente?",
+        type: "select",
+        options: [
+          { value: "referidos", label: "Solo referidos / boca a boca" },
+          { value: "linkedin", label: "LinkedIn / redes profesionales" },
+          { value: "web", label: "Web / landing page" },
+          { value: "inbound", label: "Contenido / inbound marketing" },
+          { value: "plataformas", label: "Plataformas (Upwork, Fiverr, etc.)" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+      {
+        id: "canal_mas_efectivo",
+        label: "Qué canal te ha dado mejores clientes?",
+        type: "select",
+        options: [
+          { value: "referidos", label: "Referidos de clientes actuales" },
+          { value: "linkedin", label: "LinkedIn / networking" },
+          { value: "web", label: "Búsqueda orgánica / web" },
+          { value: "recomendaciones", label: "Recomendaciones de colegas" },
+          { value: "no_se", label: "No estoy seguro / ninguno destaca" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+    ],
+  },
+  {
+    industries: ["servicios_profesionales"],
+    title: "Gestión de proyectos",
+    fields: [
+      {
+        id: "como_rastreas_horas",
+        label: "Cómo rastreas las horas que dedicas a cada cliente?",
+        type: "select",
+        options: [
+          { value: "ninguno", label: "No rastreo / facturo por memoria" },
+          { value: "toggl", label: "Toggl / Clockify / Harvest" },
+          { value: "excel", label: "Excel / hoja de cálculo" },
+          { value: "papel", label: "Papel / notas" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+      {
+        id: "como_creas_propuestas",
+        label: "Cómo creas y envías propuestas a tus clientes?",
+        type: "select",
+        options: [
+          { value: "desde_cero", label: "Desde cero cada vez" },
+          { value: "plantillas", label: "Con plantillas (Word, Google Docs)" },
+          { value: "herramienta", label: "Con herramienta especializada (PandaDoc, Qwilr)" },
+          { value: "no_hago", label: "No hago propuestas formales" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+    ],
+  },
+  {
+    industries: ["servicios_profesionales"],
+    title: "Facturación y precios",
+    fields: [
+      {
+        id: "como_facturas",
+        label: "Cómo facturas tus servicios?",
+        type: "select",
+        options: [
+          { value: "excel", label: "Excel / Word / factura manual" },
+          { value: "plataforma", label: "Plataforma de facturación" },
+          { value: "contador", label: "Mi contador las hace" },
+          { value: "automatico", label: "Facturación automática / recurrente" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+      {
+        id: "como_pones_precios",
+        label: "Cómo estructuras tus precios?",
+        type: "select",
+        options: [
+          { value: "por_hora", label: "Por hora" },
+          { value: "por_proyecto", label: "Por proyecto fijo" },
+          { value: "retainer", label: "Retainer / honorarios mensuales" },
+          { value: "mixto", label: "Mezcla de varios modelos" },
+          { value: "sin_estructura", label: "Sin estructura definida" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+    ],
+  },
+  {
+    industries: ["servicios_profesionales"],
+    title: "Seguimiento y retención",
+    fields: [
+      {
+        id: "seguimiento_postservicio",
+        label: "Das seguimiento a clientes después de entregar un proyecto?",
+        type: "select",
+        options: [
+          { value: "nada", label: "No, espero a que ellos vuelvan" },
+          { value: "email", label: "Email ocasional" },
+          { value: "llamada", label: "Llamada de check-in" },
+          { value: "crm", label: "CRM con automatización" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+      {
+        id: "como_mides_satisfaccion",
+        label: "Cómo mides la satisfacción de tus clientes?",
+        type: "select",
+        options: [
+          { value: "nada", label: "No la mido" },
+          { value: "conversacion", label: "Por conversación informal" },
+          { value: "llamada", label: "Llamada de check-in" },
+          { value: "encuesta", label: "Encuesta / NPS" },
+          { value: "renovacion", label: "Por la tasa de renovación" },
+          { value: "otro", label: "Otro" },
+        ],
+      },
+    ],
+  },
 ]
 
 // ============================

@@ -254,29 +254,31 @@ async function LegacyResultado({
   businessName?: string
   id: string
 }) {
+  const raw = lead.diagnostico_ia as Record<string, unknown> | null
   const diagnosis = lead.diagnostico as unknown as DiagnosisResult
-  const aiDiagnosis = lead.diagnostico_ia as unknown as AIDiagnosisResult | null
+
+  // Map legacy or new AI diagnosis
+  const r = raw || {}
+  const rPlan90 = r.plan_90_dias as { mes_1?: string; mes_2?: string; mes_3?: string } | undefined
+  const rPlan30 = r.plan_30_60_90 as { dia_30?: string; dia_60?: string; dia_90?: string } | undefined
+  const aiPatron = (r.patron_negocio ?? r.diagnostico_texto ?? diagnosis.patron_negocio) as string
+  const aiRiesgo = (r.riesgo_principal ?? "") as string
+  const aiCambio = (r.cambio_clave ?? r.sugerencia_mejora ?? diagnosis.cambio_clave) as string
+  const aiPlan = rPlan90
+    ? [rPlan90.mes_1 || "", rPlan90.mes_2 || "", rPlan90.mes_3 || ""]
+    : rPlan30
+      ? [rPlan30.dia_30 || "", rPlan30.dia_60 || "", rPlan30.dia_90 || ""]
+      : [diagnosis.plan_90_dias.mes_1, diagnosis.plan_90_dias.mes_2, diagnosis.plan_90_dias.mes_3]
+  const aiCaso = r.caso_exito as AIDiagnosisResult["caso_exito"] | undefined
 
   return (
     <div className="mt-10 flex flex-col gap-6">
       <DiagnosisSummary
-        businessName={businessName}
-        readinessLabel={SegmentSummary({ segmento: score.segmento }).title}
-        readinessColor={SegmentSummary({ segmento: score.segmento }).badge.includes("red") ? "text-red-700" : SegmentSummary({ segmento: score.segmento }).badge.includes("amber") ? "text-amber-700" : "text-blue-700"}
-        readinessDescription={SegmentSummary({ segmento: score.segmento }).description}
-        diagnosticText={aiDiagnosis?.diagnostico_texto ?? diagnosis.diagnostico_texto}
-        beneficios={aiDiagnosis?.beneficios ?? diagnosis.beneficios.slice(0, 3)}
-        plan={aiDiagnosis?.plan_30_60_90 ? [
-          `30d: ${aiDiagnosis.plan_30_60_90.dia_30}`,
-          `60d: ${aiDiagnosis.plan_30_60_90.dia_60}`,
-          `90d: ${aiDiagnosis.plan_30_60_90.dia_90}`,
-        ] : [
-          "Diagnóstico y piloto de automatización",
-          "Implementación en procesos clave",
-          "Escalado con indicadores de ROI",
-        ]}
-        sugerenciaMejora={aiDiagnosis?.sugerencia_mejora}
-        casoExito={aiDiagnosis?.caso_exito}
+        patronNegocio={String(aiPatron ?? "")}
+        riesgoPrincipal={String(aiRiesgo ?? "")}
+        cambioClave={String(aiCambio ?? "")}
+        plan={aiPlan as string[]}
+        casoExito={aiCaso ?? null}
       />
 
       <ServiciosRecomendados leadId={id} />

@@ -41,6 +41,7 @@ model Lead {
   diagnostico           Json?     // DiagnosisResult completo (estático)
   diagnostico_ia        Json?     // AIDiagnosisResult completo (generado por GPT-4o)
   briefing_profesional  Json?     // ProfessionalBriefing para el meet
+  plan_desarrollo       Json?     // DevPlan para el admin/agencia
 
   // Pipeline
   segmento              String    @default("COLD")
@@ -134,4 +135,19 @@ model LeadService {
   service Service @relation(fields: [service_id], references: [id])
 
   @@id([lead_id, service_id])
+}
+
+model KnowledgeChunk {
+  id        String   @id @default(cuid())
+  contenido String
+  embedding Unsupported("vector(1536)")
+  industria String
+  segmento  String?
+  tipo      String   // "sintoma" | "accion" | "benchmark" | "historia" | "pregunta_guia"
+  fuente    String   // "fallback" | "knowledge_pack" | "generico" | "inegi" | "camara" | "auto_generado"
+  activo    Boolean  @default(true)
+  creadoEn  DateTime @default(now())
+
+  @@index([industria, segmento, tipo])
+  @@index([activo])
 }

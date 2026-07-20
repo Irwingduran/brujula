@@ -143,55 +143,28 @@ function estimatePricing(budget: BudgetRange, pain: PainPoint): string {
 export function generateDiagnosis(data: WizardData): DiagnosisResult {
   if (!data.step1 || !data.step2) {
     return {
-      titulo_servicio: "Diagnostico Digital",
-      descripcion: "Completa el diagnostico para recibir tu plan personalizado.",
-      diagnostico_texto: "",
-      roi_estimado: "",
-      precio_rango: "",
-      beneficios: [],
-      siguiente_paso: "",
-      plan_30_60_90: { dia_30: "", dia_60: "", dia_90: "" },
+      patron_negocio: "Completa el diagnóstico para recibir tu análisis personalizado.",
+      riesgo_principal: "",
+      cambio_clave: "",
+      plan_90_dias: { mes_1: "", mes_2: "", mes_3: "" },
     }
   }
 
   const industry = data.step1.industria
   const industryCode = mapToIndustryCode(industry)
-  const primaryPain = data.step1.dolores_principales[0] || "procesos_manuales"
   const knowledge = getKnowledgePack(industryCode)
   const fb = getFallbackByIndustry(industryCode)
 
-  const pains = data.step1.dolores_principales
-  const painLabels: Record<PainPoint, string> = {
-    procesos_manuales: "procesos manuales que consumen tiempo",
-    falta_visibilidad: "falta de visibilidad sobre metricas clave",
-    ventas_estancadas: "ventas estancadas o en declive",
-    presencia_online: "presencia online debil",
-    sin_trazabilidad: "falta de trazabilidad en operaciones",
-    atencion_cliente: "dificultades en la atencion al cliente",
-    otro: "desafios particulares de su negocio",
-  }
-  const painList = pains.map((p) => painLabels[p] || p).join(", ")
-  const size = data.step1.tamano_empresa
-  const tools = data.step1.herramientas_actuales
-  const hasBasicTools = tools.includes("nada") || tools.includes("excel") || tools.includes("whatsapp")
-  const toolNote = hasBasicTools
-    ? "Actualmente dependes de herramientas basicas que limitan tu crecimiento."
-    : "Ya cuentas con algunas herramientas, pero hay oportunidad de optimizarlas significativamente."
-
-  const template = SERVICE_TEMPLATES[primaryPain]
-
   return {
-    titulo_servicio: template.titulo_servicio,
-    descripcion: template.descripcion,
-    diagnostico_texto: fb?.texto ?? `Basado en nuestro analisis de tu negocio en el sector ${industry} con un equipo de tamano ${size}, hemos identificado areas criticas de mejora: ${painList}. ${toolNote}`,
-    roi_estimado: estimateROI(data.step1.tamano_empresa, primaryPain),
-    precio_rango: estimatePricing(data.step2.presupuesto, primaryPain),
-    beneficios: fb?.beneficios ?? template.beneficios.slice(0, 3),
-    siguiente_paso: "Agenda tu llamada gratuita de 30 minutos para revisar este diagnostico juntos y definir los proximos pasos concretos.",
-    plan_30_60_90: fb?.plan ?? {
-      dia_30: "Diagnostico detallado y piloto de automatizacion en el proceso mas critico",
-      dia_60: "Implementacion completa con ajustes basados en datos del primer mes",
-      dia_90: "Escalado a procesos secundarios y medicion de ROI consolidado",
-    },
+    patron_negocio: fb?.texto ?? "Según tus respuestas, tu negocio depende de herramientas básicas y procesos manuales que consumen tiempo sin que tengas visibilidad clara del impacto en tu rentabilidad.",
+    riesgo_principal: "Sin datos concretos sobre tu operación, cada decisión es una corazonada. El riesgo es seguir invirtiendo tiempo sin saber qué está funcionando.",
+    cambio_clave: fb?.sugerencia ?? "Empieza por medir una métrica esta semana. Una sola. El dato te mostrará dónde está el verdadero cuello de botella.",
+    plan_90_dias: fb?.plan
+      ? { mes_1: fb.plan.dia_30, mes_2: fb.plan.dia_60, mes_3: fb.plan.dia_90 }
+      : {
+          mes_1: "Documenta el proceso que más tiempo te consume durante una semana. No cambies nada, solo mide.",
+          mes_2: "Identifica el desperdicio con los datos del primer mes y haz un cambio concreto para reducirlo.",
+          mes_3: "Repite el ciclo con el siguiente proceso prioritario y tendrás un mapa claro de tu operación.",
+        },
   }
 }

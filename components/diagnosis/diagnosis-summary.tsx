@@ -1,7 +1,6 @@
 "use client"
 
-import { CheckCircle, Lightning, Target, ChartBar, ArrowRight, Quotes } from "@phosphor-icons/react"
-import { cn } from "@/lib/utils"
+import { MagnifyingGlass, Warning, Compass, CalendarBlank, ArrowRight } from "@phosphor-icons/react"
 
 interface CasoExito {
   empresa: string
@@ -12,36 +11,22 @@ interface CasoExito {
 }
 
 interface DiagnosisSummaryProps {
-  readinessLabel: string
-  readinessColor: string
-  readinessDescription: string
-  diagnosticText: string
-  beneficios: string[]
+  patronNegocio: string
+  riesgoPrincipal: string
+  cambioClave: string
   plan: string[]
   isLoading?: boolean
-  sugerenciaMejora?: string
   casoExito?: CasoExito | null
-  businessName?: string
-}
-
-function getPlanLabels(industryCode?: string): string[] {
-  return ["Primer mes", "Segundo mes", "Tercer mes"]
 }
 
 export function DiagnosisSummary({
-  readinessLabel,
-  readinessColor,
-  readinessDescription,
-  diagnosticText,
-  beneficios,
+  patronNegocio,
+  riesgoPrincipal,
+  cambioClave,
   plan,
-  sugerenciaMejora,
   casoExito,
-  businessName,
   isLoading = false,
 }: DiagnosisSummaryProps) {
-  const labels = getPlanLabels()
-
   if (isLoading) {
     return (
       <section className="glass-card rounded-2xl overflow-hidden">
@@ -59,83 +44,64 @@ export function DiagnosisSummary({
 
   return (
     <section className="space-y-5">
-      {/* Diagnostic text — prominent */}
-      <div className="glass-card rounded-2xl overflow-hidden">
+      {/* Pattern — prominent */}
+      <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-accent">
         <div className="p-6 sm:p-8">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-5 w-5 text-primary" weight="fill" />
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">
-              Diagnóstico
+            <MagnifyingGlass className="h-5 w-5 text-accent" />
+            <span className="text-xs font-bold text-accent uppercase tracking-wider">
+              El patrón de tu negocio
             </span>
           </div>
           <p className="text-base sm:text-lg text-foreground leading-relaxed font-medium">
-            {diagnosticText}
+            {patronNegocio}
           </p>
         </div>
       </div>
 
-      {/* Benefits */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="p-6 sm:p-8 space-y-4">
-          <div className="flex items-center gap-2">
-            <Lightning className="h-5 w-5 text-accent" weight="fill" />
-            <span className="text-xs font-bold text-accent uppercase tracking-wider">
-              Lo que puedes lograr
+      {/* Risk — highlighted */}
+      <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-rose-500">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Warning className="h-5 w-5 text-rose-500" weight="fill" />
+            <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">
+              Tu riesgo más grande
             </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {beneficios.map((b, i) => {
-              const icons = [Lightning, ChartBar, CheckCircle]
-              const Icon = icons[i % 3]
-              return (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-xl border border-accent/15 bg-accent/5 p-4"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                    <Icon className="h-4 w-4 text-accent" weight="fill" />
-                  </div>
-                  <p className="text-sm text-foreground leading-snug">{b}</p>
-                </div>
-              )
-            })}
-          </div>
+          <p className="text-sm sm:text-base text-foreground leading-relaxed">
+            {riesgoPrincipal}
+          </p>
         </div>
       </div>
 
-      {/* Suggestion */}
-      {sugerenciaMejora && (
-        <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-primary">
-          <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Quotes className="h-4 w-4 text-primary" weight="fill" />
-              <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                Recomendación rápida
-              </span>
-            </div>
-            <p className="text-sm text-foreground leading-relaxed">
-              {sugerenciaMejora}
-            </p>
+      {/* Key change — quote box */}
+      <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-primary">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Compass className="h-5 w-5 text-primary" />
+            <span className="text-xs font-bold text-primary uppercase tracking-wider">
+              El cambio que recomendamos
+            </span>
           </div>
+          <p className="text-base text-foreground leading-relaxed font-medium">
+            {cambioClave}
+          </p>
         </div>
-      )}
+      </div>
 
       {/* Plan */}
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="p-6 sm:p-8 space-y-4">
           <div className="flex items-center gap-2">
-            <ChartBar className="h-5 w-5 text-foreground" weight="fill" />
+            <CalendarBlank className="h-5 w-5 text-foreground" />
             <span className="text-xs font-bold text-foreground/60 uppercase tracking-wider">
-              Tu plan de acción
+              Tu plan de 90 días
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {plan.map((item, i) => {
-              const gradients = [
-                "from-accent to-accent/60",
-                "from-primary to-primary/60",
-                "from-emerald-500 to-emerald-400",
-              ]
+              const labels = ["Mes 1", "Mes 2", "Mes 3"]
+              const icons = ["1", "2", "3"]
               return (
                 <div
                   key={i}
@@ -144,11 +110,8 @@ export function DiagnosisSummary({
                 >
                   <div className="rounded-[11px] bg-white p-4 h-full">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white",
-                        i === 0 ? "bg-accent" : i === 1 ? "bg-primary" : "bg-emerald-500"
-                      )}>
-                        {i + 1}
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white bg-foreground/70">
+                        {icons[i]}
                       </span>
                       <span className="text-[11px] font-bold text-foreground/40 uppercase tracking-wider">
                         {labels[i]}

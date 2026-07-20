@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     // Enviar emails (no bloquea la respuesta si falla)
     try {
-      const diagnosisData = lead.diagnostico as unknown as DiagnosisResult
+      const diagnosisData = lead.diagnostico as any
       const scoreData = lead.score as unknown as ScoreBreakdown
 
       // Siempre enviar diagnóstico al lead

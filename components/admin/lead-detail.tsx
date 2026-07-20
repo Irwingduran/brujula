@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import type { Lead, PipelineStage } from "@/lib/types"
-import { PIPELINE_STAGES, INDUSTRIES, PAIN_POINTS, COMPANY_SIZES, BUDGET_RANGES, URGENCY_OPTIONS } from "@/lib/constants"
+import { PIPELINE_STAGES, INDUSTRIES, PAIN_POINTS, COMPANY_SIZES, BUDGET_RANGES, URGENCY_OPTIONS, BRANCH_CONFIGS } from "@/lib/constants"
+import { getBranchFieldLabel, getBranchOptionLabel } from "@/lib/branching"
 import { ScoreBadge } from "./score-badge"
 import { LeadServices } from "./lead-services"
 import { cn } from "@/lib/utils"
-import { ArrowLeft, Envelope, Phone, Buildings, Calendar, FloppyDisk, Target, WarningCircle, ChatCircleText, TrendUp, Clock, Lightbulb, Globe, VideoCamera, PaperPlaneTilt } from "@phosphor-icons/react"
+import { ArrowLeft, Envelope, Phone, Buildings, Calendar, FloppyDisk, Target, WarningCircle, ChatCircleText, TrendUp, Clock, Lightbulb, Globe, VideoCamera, PaperPlaneTilt, MagnifyingGlass, Compass, CalendarBlank, ListChecks } from "@phosphor-icons/react"
 import Link from "next/link"
 import useSWR, { mutate } from "swr"
 
@@ -139,6 +140,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
   const { data: lead, error } = useSWR<Lead>(`/api/leads/${leadId}`, fetcher)
   const [notes, setNotes] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [generatingDevPlan, setGeneratingDevPlan] = useState(false)
 
   if (error) return <div className="p-8 text-center text-muted-foreground">Lead no encontrado.</div>
   if (!lead) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>
@@ -152,6 +154,20 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
       body: JSON.stringify({ estado_pipeline: stage }),
     })
     mutate(`/api/leads/${leadId}`)
+  }
+
+  async function handleGenerateDevPlan() {
+    setGeneratingDevPlan(true)
+    try {
+      await fetch("/api/ai/dev-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId }),
+      })
+      mutate(`/api/leads/${leadId}`)
+    } finally {
+      setGeneratingDevPlan(false)
+    }
   }
 
   async function handleSaveNotes() {
@@ -409,11 +425,11 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               {Object.keys(lead.respuestas_branch).length > 0 && (
                 <div>
                   <span className="text-muted-foreground">Respuestas adicionales:</span>
-                  <div className="mt-1 flex flex-col gap-1">
+                  <div className="mt-1 flex flex-col gap-1.5">
                     {Object.entries(lead.respuestas_branch).map(([key, val]) => (
-                      <div key={key} className="text-xs">
-                        <span className="text-muted-foreground">{key}: </span>
-                        <span className="text-card-foreground">{val}</span>
+                      <div key={key} className="rounded bg-muted/30 px-2 py-1.5">
+                        <span className="block text-[10px] font-medium text-muted-foreground">{getBranchFieldLabel(key)}</span>
+                        <span className="text-xs text-card-foreground">{getBranchOptionLabel(key, val as string)}</span>
                       </div>
                     ))}
                   </div>
@@ -433,10 +449,13 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
             </div>
           </div>
 
-          {/* Website URL + Analysis */}
+          {/* Website URL + Full Analysis */}
           {lead.url_sitio && (
             <div className="rounded-xl border border-border bg-card p-5">
-              <h2 className="mb-3 text-sm font-semibold text-card-foreground">Sitio web</h2>
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-card-foreground">Sitio web</h2>
+              </div>
               <a
                 href={lead.url_sitio}
                 target="_blank"
@@ -447,16 +466,76 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               </a>
               {(() => {
                 const wa = lead.website_analisis as Record<string, unknown> | null
-                const ops = wa?.oportunidades_mejora as string[] | undefined
-                if (!ops?.length) return null
+                if (!wa || Object.keys(wa).length === 0) return null
+                const desc = wa.descripcion as string
+                const resumen = wa.resumen_contenido as string
+                const tieneBlog = wa.tiene_blog as boolean
+                const tieneEcommerce = wa.tiene_ecommerce as boolean
+                const tieneForm = wa.tiene_formulario_contacto as boolean
+                const redes = wa.redes_sociales as string[] | undefined
+                const keywords = wa.keywords_detectadas as string[] | undefined
+                const ops = wa.oportunidades_mejora as string[] | undefined
                 return (
-                  <div className="mt-3 space-y-2">
-                    <span className="text-xs font-semibold text-amber-700">Oportunidades de mejora</span>
-                    <div className="flex flex-col gap-1">
-                      {ops.map((o: string, i: number) => (
-                        <div key={i} className="rounded bg-amber-50 px-2 py-1 text-xs text-card-foreground border border-amber-100">{o}</div>
-                      ))}
+                  <div className="mt-3 space-y-3 text-xs">
+                    {desc && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Descripción detectada:</span>
+                        <p className="text-card-foreground mt-0.5">{desc}</p>
+                      </div>
+                    )}
+                    {resumen && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Resumen de contenido:</span>
+                        <p className="text-card-foreground mt-0.5">{resumen}</p>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {tieneBlog !== undefined && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tieneBlog ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                          {tieneBlog ? '✓ Blog' : '✗ Blog'}
+                        </span>
+                      )}
+                      {tieneEcommerce !== undefined && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tieneEcommerce ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                          {tieneEcommerce ? '✓ Tienda' : '✗ Tienda'}
+                        </span>
+                      )}
+                      {tieneForm !== undefined && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tieneForm ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                          {tieneForm ? '✓ Contacto' : '✗ Contacto'}
+                        </span>
+                      )}
                     </div>
+                    {redes && redes.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Redes sociales:</span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {redes.map((r: string) => (
+                            <span key={r} className="rounded bg-primary/5 px-2 py-0.5 text-card-foreground">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {keywords && keywords.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Keywords detectadas:</span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {keywords.map((k: string) => (
+                            <span key={k} className="rounded bg-accent/5 px-2 py-0.5 text-card-foreground">{k}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {ops && ops.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-amber-700">Oportunidades de mejora:</span>
+                        <div className="flex flex-col gap-1 mt-0.5">
+                          {ops.map((o: string, i: number) => (
+                            <div key={i} className="rounded bg-amber-50 px-2 py-1 text-card-foreground border border-amber-100">{o}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })()}
@@ -468,19 +547,19 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
             <div className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-2 text-sm font-semibold text-card-foreground">Diagnostico Generado</h2>
               <h3 className="text-base font-bold text-card-foreground">
-                {lead.diagnostico_ia?.titulo_servicio ?? lead.diagnostico.titulo_servicio}
+                {(lead.diagnostico_ia as any)?.titulo_servicio ?? (lead.diagnostico as any)?.titulo_servicio ?? "Diagnóstico"}
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                {lead.diagnostico_ia?.diagnostico_texto ?? lead.diagnostico.diagnostico_texto}
+                {(lead.diagnostico_ia as any)?.diagnostico_texto ?? (lead.diagnostico as any)?.diagnostico_texto ?? (lead.diagnostico_ia as any)?.patron_negocio ?? ""}
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <div className="rounded-lg bg-muted/50 p-3">
                   <div className="text-xs text-muted-foreground">ROI estimado</div>
-                  <div className="mt-0.5 text-sm font-medium text-card-foreground">{lead.diagnostico.roi_estimado}</div>
+                  <div className="mt-0.5 text-sm font-medium text-card-foreground">{(lead.diagnostico as any)?.roi_estimado ?? "—"}</div>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3">
                   <div className="text-xs text-muted-foreground">Precio sugerido</div>
-                  <div className="mt-0.5 text-sm font-medium text-card-foreground">{lead.diagnostico.precio_rango}</div>
+                  <div className="mt-0.5 text-sm font-medium text-card-foreground">{(lead.diagnostico as any)?.precio_rango ?? "—"}</div>
                 </div>
               </div>
             </div>
@@ -494,7 +573,63 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
                 <h2 className="text-sm font-semibold text-card-foreground">Diagnóstico IA Personalizado</h2>
               </div>
 
-              {/* Diagnostico ejecutivo */}
+              {/* Patrón de negocio (nuevo) */}
+              {(lead.diagnostico_ia as any).patron_negocio && (
+                <div className="mb-4 rounded-lg border-l-4 border-l-accent bg-accent/[0.03] p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <MagnifyingGlass className="h-3.5 w-3.5 text-accent" />
+                    <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Patrón de negocio</span>
+                  </div>
+                  <p className="text-sm text-card-foreground leading-relaxed">{(lead.diagnostico_ia as any).patron_negocio}</p>
+                </div>
+              )}
+
+              {/* Riesgo principal (nuevo) */}
+              {(lead.diagnostico_ia as any).riesgo_principal && (
+                <div className="mb-4 rounded-lg border-l-4 border-l-rose-500 bg-rose-50/50 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <WarningCircle className="h-3.5 w-3.5 text-rose-500" />
+                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Riesgo principal</span>
+                  </div>
+                  <p className="text-sm text-card-foreground leading-relaxed">{(lead.diagnostico_ia as any).riesgo_principal}</p>
+                </div>
+              )}
+
+              {/* Cambio clave (nuevo) */}
+              {(lead.diagnostico_ia as any).cambio_clave && (
+                <div className="mb-4 rounded-lg border-l-4 border-l-primary bg-primary/[0.03] p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Compass className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Cambio clave recomendado</span>
+                  </div>
+                  <p className="text-sm text-card-foreground leading-relaxed">{(lead.diagnostico_ia as any).cambio_clave}</p>
+                </div>
+              )}
+
+              {/* Plan 90 días (nuevo) */}
+              {(lead.diagnostico_ia as any).plan_90_dias && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <CalendarBlank className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Plan 90 días</span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {(["mes_1", "mes_2", "mes_3"] as const).map((m, i) => {
+                      const labels = ["Mes 1", "Mes 2", "Mes 3"]
+                      const val = (lead.diagnostico_ia as any).plan_90_dias[m]
+                      if (!val) return null
+                      return (
+                        <div key={m} className="rounded-lg bg-muted/50 border border-border p-3">
+                          <span className="block text-[10px] font-semibold text-primary mb-1">{labels[i]}</span>
+                          <p className="text-xs text-card-foreground leading-snug">{val}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Diagnostico ejecutivo (legacy) */}
               {lead.diagnostico_ia.diagnostico_ejecutivo && (
                 <div className="mb-4">
                   <div className="text-xs font-semibold text-muted-foreground mb-1">Diagnóstico ejecutivo</div>
@@ -623,6 +758,98 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               )}
             </div>
           )}
+
+          {/* Plan de Desarrollo (para el admin/agencia) */}
+          {lead.plan_desarrollo && (
+            <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <ListChecks className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-sm font-semibold text-card-foreground">Plan de Desarrollo</h2>
+                <span className="ml-auto text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">Admin view</span>
+              </div>
+
+              {/* Diagnóstico técnico */}
+              {(lead.plan_desarrollo as any).diagnostico_tecnico && (
+                <div className="mb-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Diagnóstico técnico</span>
+                  <p className="mt-1 text-sm text-card-foreground leading-relaxed">{(lead.plan_desarrollo as any).diagnostico_tecnico}</p>
+                </div>
+              )}
+
+              {/* Soluciones recomendadas */}
+              {(lead.plan_desarrollo as any).soluciones_recomendadas?.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Soluciones recomendadas</span>
+                  <div className="mt-2 space-y-2">
+                    {((lead.plan_desarrollo as any).soluciones_recomendadas as any[]).map((sol: any, i: number) => (
+                      <div key={i} className="rounded-lg bg-white border border-emerald-100 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-semibold text-card-foreground">{sol.problema}</span>
+                          <div className="flex shrink-0 gap-1">
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                              sol.prioridad === "alta" ? "bg-rose-100 text-rose-700" :
+                              sol.prioridad === "media" ? "bg-amber-100 text-amber-700" :
+                              "bg-sky-100 text-sky-700"
+                            }`}>{sol.prioridad}</span>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                              sol.complejidad === "alta" ? "bg-rose-100 text-rose-700" :
+                              sol.complejidad === "media" ? "bg-amber-100 text-amber-700" :
+                              "bg-emerald-100 text-emerald-700"
+                            }`}>{sol.complejidad}</span>
+                          </div>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{sol.solucion}</p>
+                        {sol.herramientas_sugeridas?.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {sol.herramientas_sugeridas.map((h: string) => (
+                              <span key={h} className="text-[10px] bg-primary/5 text-primary px-1.5 py-0.5 rounded">{h}</span>
+                            ))}
+                          </div>
+                        )}
+                        {sol.tiempo_estimado && (
+                          <div className="mt-1 text-[10px] text-muted-foreground">
+                            <Clock className="inline-block h-3 w-3 mr-0.5" />
+                            {sol.tiempo_estimado}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Roadmap implementación */}
+              {(lead.plan_desarrollo as any).roadmap_implementacion && (
+                <div className="mb-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Roadmap</span>
+                  <div className="mt-2 grid gap-2">
+                    {(Object.entries((lead.plan_desarrollo as any).roadmap_implementacion) as [string, string][]).map(([fase, desc]) => (
+                      <div key={fase} className="rounded-lg bg-white border border-border p-3">
+                        <span className="block text-[10px] font-semibold text-primary mb-0.5">{fase.replace("_", " ").toUpperCase()}</span>
+                        <p className="text-xs text-card-foreground leading-snug">{desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Observaciones sitio web */}
+              {(lead.plan_desarrollo as any).observaciones_sitio_web && (
+                <div className="mb-4 rounded-lg bg-white border border-border p-3">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Sitio web</span>
+                  <p className="mt-0.5 text-xs text-card-foreground leading-snug">{(lead.plan_desarrollo as any).observaciones_sitio_web}</p>
+                </div>
+              )}
+
+              {/* Plan seguimiento */}
+              {(lead.plan_desarrollo as any).plan_seguimiento && (
+                <div className="rounded-lg bg-white border border-primary/20 p-3">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Seguimiento</span>
+                  <p className="mt-0.5 text-xs text-card-foreground leading-snug">{(lead.plan_desarrollo as any).plan_seguimiento}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right column - actions */}
@@ -697,6 +924,13 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
             <h2 className="mb-3 text-sm font-semibold text-card-foreground">Acciones rápidas</h2>
             <div className="flex flex-col gap-2">
               <WhatsAppButton leadId={leadId} telefono={lead.telefono} />
+              <button
+                onClick={handleGenerateDevPlan}
+                disabled={generatingDevPlan}
+                className="rounded-lg bg-emerald-50 px-3 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {generatingDevPlan ? "Generando..." : "Generar Plan de Desarrollo"}
+              </button>
               <button
                 onClick={() => handlePipelineChange("cerrado")}
                 className="rounded-lg bg-emerald-50 px-3 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
