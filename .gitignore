@@ -7,9 +7,13 @@ node_modules
 out
 
 /lib/generated/prisma
+/RAG
 
-# Documentation (local only)
-/docs
+# Documentation and scripts (local only, except RAG)
+/scripts/*
+!/scripts/rag/
+/docs/*
+!/docs/rag/
 
 # macOS system files
 .DS_Store
