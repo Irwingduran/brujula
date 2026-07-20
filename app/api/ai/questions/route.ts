@@ -1,5 +1,6 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
+import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
 
 // Tipado opcional para websiteAnalysis (recomendado para TypeScript estricto)
 interface WebsiteAnalysis {
@@ -142,6 +143,22 @@ export async function POST(request: Request) {
 
     const doloresText = step1.dolores_principales.join(", ")
 
+    const industryCodeMap: Record<string, string> = {
+      restaurante: "servicios", retail: "retail", servicios_profesionales: "servicios",
+      salud: "servicios", educacion: "servicios", inmobiliaria: "servicios",
+      tecnologia: "servicios", manufactura: "servicios", logistica: "servicios",
+    }
+    const industryCode = industryCodeMap[step1.industria] ?? "servicios_profesionales"
+    const ragContext = await getPromptGuidance(industryCode, {
+      query: `Preguntas para ${step1.industria}. Dolores: ${doloresText}. Tamaño: ${step1.tamano_empresa}. Herramientas: ${step1.herramientas_actuales.join(", ")}`,
+      segmento: null,
+      topK: 4,
+    })
+
+    const ragSection = ragContext
+      ? `\n\nCONOCIMIENTO DE LA INDUSTRIA (úsalo para hacer preguntas más específicas):\n${ragContext}`
+      : ""
+
     const prompt = `Eres un consultor senior de transformación digital para PYMEs en Latinoamérica. Un prospecto está completando un diagnóstico y necesitas hacer preguntas inteligentes para entender su caso a fondo.
 
 DATOS DEL PROSPECTO:
@@ -152,7 +169,7 @@ DATOS DEL PROSPECTO:
 - Presupuesto: ${step2.presupuesto}
 - Urgencia: ${step2.urgencia}
 - Situación específica:
-${branchContext}${previousContext}${websiteContext}
+${branchContext}${previousContext}${websiteContext}${ragSection}
 
 RONDA ACTUAL: ${round} de 2
 

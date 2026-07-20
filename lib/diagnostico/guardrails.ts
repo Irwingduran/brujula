@@ -102,7 +102,7 @@ export function validarGenericity(
   const textToCheck = [resumen, ...sintomasPrincipales].join(" ")
 
   const isProfessionalService =
-    clasificacion.industryCode === "servicios" ||
+    clasificacion.industryCode === "servicios_profesionales" ||
     PROFESSIONAL_SERVICES_KEYWORDS.some((k) => textToCheck.toLowerCase().includes(k))
 
   for (const pattern of GENERIC_PATTERNS) {

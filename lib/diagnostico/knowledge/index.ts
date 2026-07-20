@@ -1,10 +1,18 @@
 import type { KnowledgePack } from "./types"
 import { SERVICIOS_PROFESIONALES_PACK } from "./servicios-profesionales"
 import { RETAIL_PACK } from "./retail"
+import { RESTAURANTE_PACK } from "./restaurante"
+import { SALUD_PACK } from "./salud"
+import { INMOBILIARIA_PACK } from "./inmobiliaria"
+import { LOGISTICA_PACK } from "./logistica"
 
 const KNOWLEDGE_PACKS: Record<string, KnowledgePack> = {
-  servicios: SERVICIOS_PROFESIONALES_PACK,
+  servicios_profesionales: SERVICIOS_PROFESIONALES_PACK,
   retail: RETAIL_PACK,
+  restaurante: RESTAURANTE_PACK,
+  salud: SALUD_PACK,
+  inmobiliaria: INMOBILIARIA_PACK,
+  logistica: LOGISTICA_PACK,
 }
 
 const MIN_CHUNKS_THRESHOLD = parseInt(process.env.RAG_MIN_CHUNKS || "5")

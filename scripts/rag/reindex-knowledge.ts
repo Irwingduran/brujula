@@ -1,24 +1,14 @@
 /**
  * Script de reindexación — Prioridad 1
  *
- * Toma el contenido que YA existe en el código (fallback pre-escrito +
- * Knowledge Packs de servicios_profesionales y retail) y lo convierte en
- * filas de KnowledgeChunk con su embedding.
+ * Toma todos los Knowledge Packs registrados en el sistema y los convierte
+ * en filas de KnowledgeChunk con su embedding en la DB.
  *
  * Uso: npx tsx scripts/rag/reindex-knowledge.ts
- *
- * IMPORTANTE: este script asume que tienes en tu código dos fuentes con esta forma:
- *   - fallbackContent: { [nivel: string]: { industria: string; tipo: string; texto: string }[] }
- *   - knowledgePacks: { [industria: string]: { sintomas: string[]; acciones: string[];
- *                       benchmarks: string[]; historias: string[] } }
- * Ajusta los imports de abajo a la ubicación real de esos objetos en tu repo.
  */
 import { PrismaClient } from "@prisma/client";
 import { embed, toPgVectorLiteral } from "../../lib/rag/embeddings";
-
-// TODO: ajustar a la ruta real donde vive tu contenido de fallback y tus Knowledge Packs
-// import { fallbackContent } from "../src/content/fallback";
-// import { knowledgePacks } from "../src/content/knowledge-packs";
+import { getAllKnowledgePacks } from "../../lib/diagnostico/knowledge";
 
 const prisma = new PrismaClient();
 
@@ -27,48 +17,68 @@ interface ChunkCandidato {
   industria: string;
   segmento: string | null;
   tipo: string;
-  fuente: "fallback" | "knowledge_pack";
+  fuente: "knowledge_pack";
 }
 
-function construirCandidatosDesdeFallback(fallbackContent: any): ChunkCandidato[] {
+function construirCandidatos(): ChunkCandidato[] {
+  const packs = getAllKnowledgePacks();
   const candidatos: ChunkCandidato[] = [];
-  for (const [, items] of Object.entries<any>(fallbackContent)) {
-    for (const item of items) {
+
+  for (const [industria, pack] of Object.entries(packs)) {
+    // Síntomas
+    for (const s of pack.symptoms) {
       candidatos.push({
-        contenido: item.texto,
-        industria: item.industria,
-        segmento: item.segmento ?? null,
-        tipo: item.tipo,
-        fuente: "fallback",
+        contenido: `${s.nombre}. ${s.descripcion}`,
+        industria,
+        segmento: null,
+        tipo: "sintoma",
+        fuente: "knowledge_pack",
       });
     }
-  }
-  return candidatos;
-}
 
-function construirCandidatosDesdePacks(knowledgePacks: any): ChunkCandidato[] {
-  const candidatos: ChunkCandidato[] = [];
-  const tiposPorCampo: Record<string, string> = {
-    sintomas: "sintoma",
-    acciones: "accion",
-    benchmarks: "benchmark",
-    historias: "historia",
-  };
-
-  for (const [industria, pack] of Object.entries<any>(knowledgePacks)) {
-    for (const [campo, tipo] of Object.entries(tiposPorCampo)) {
-      const items: string[] = pack[campo] ?? [];
-      for (const texto of items) {
-        candidatos.push({
-          contenido: texto,
-          industria,
-          segmento: null,
-          tipo,
-          fuente: "knowledge_pack",
-        });
-      }
+    // Acciones
+    for (const a of pack.actions) {
+      candidatos.push({
+        contenido: `${a.titulo}. ${a.descripcion}`,
+        industria,
+        segmento: null,
+        tipo: "accion",
+        fuente: "knowledge_pack",
+      });
     }
+
+    // Benchmarks
+    for (const b of pack.benchmarks) {
+      candidatos.push({
+        contenido: `${b.metrica}: ${b.valor}. ${b.descripcion}`,
+        industria,
+        segmento: null,
+        tipo: "benchmark",
+        fuente: "knowledge_pack",
+      });
+    }
+
+    // Historias de éxito
+    for (const h of pack.successStories) {
+      candidatos.push({
+        contenido: `${h.empresa}: ${h.problema} ${h.solucion} Resultado: ${h.resultado}`,
+        industria,
+        segmento: null,
+        tipo: "historia",
+        fuente: "knowledge_pack",
+      });
+    }
+
+    // Prompt guidance como chunk tipo pregunta_guia
+    candidatos.push({
+      contenido: pack.promptGuidance,
+      industria,
+      segmento: null,
+      tipo: "pregunta_guia",
+      fuente: "knowledge_pack",
+    });
   }
+
   return candidatos;
 }
 
@@ -91,15 +101,8 @@ async function insertarChunk(candidato: ChunkCandidato) {
 }
 
 async function main() {
-  // TODO: descomentar tras ajustar los imports de arriba
-  // const candidatos = [
-  //   ...construirCandidatosDesdeFallback(fallbackContent),
-  //   ...construirCandidatosDesdePacks(knowledgePacks),
-  // ];
-
-  const candidatos: ChunkCandidato[] = []; // placeholder hasta conectar las fuentes reales
-
-  console.log(`Reindexando ${candidatos.length} chunks...`);
+  const candidatos = construirCandidatos();
+  console.log(`Reindexando ${candidatos.length} chunks desde ${Object.keys(getAllKnowledgePacks()).length} knowledge packs...`);
 
   let ok = 0;
   let fallidos = 0;
@@ -112,11 +115,21 @@ async function main() {
       fallidos++;
       console.error(`Error indexando chunk de industria ${candidato.industria}:`, err);
     }
-    // Pequeño respiro para no saturar el rate limit de embeddings
+    // Throttle para no saturar rate limit de embeddings
     await new Promise((r) => setTimeout(r, 50));
   }
 
   console.log(`Listo. ${ok} chunks insertados, ${fallidos} fallidos.`);
+
+  // Resumen por industria
+  const resumen = await prisma.$queryRawUnsafe<{ industria: string; total: bigint }[]>(
+    `SELECT industria, COUNT(*) as total FROM "KnowledgeChunk" WHERE activo = true GROUP BY industria ORDER BY industria`
+  );
+  console.log("\nCobertura por industria:");
+  for (const r of resumen) {
+    console.log(`  ${r.industria}: ${r.total} chunks`);
+  }
+
   await prisma.$disconnect();
 }
 

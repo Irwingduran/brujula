@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
 import type { ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
 
 export async function POST(request: Request) {
@@ -74,6 +75,21 @@ ${aiDiag.hallazgos_web ? `- Fortalezas web: ${aiDiag.hallazgos_web.fortalezas.jo
 - Industry fit: ${score.industria_fit}/10`
       : ""
 
+    const industryCodeMap: Record<string, string> = {
+      restaurante: "servicios", retail: "retail", servicios_profesionales: "servicios",
+      salud: "servicios", educacion: "servicios", inmobiliaria: "servicios",
+      tecnologia: "servicios", manufactura: "servicios", logistica: "servicios",
+    }
+    const industryCode = industryCodeMap[lead.industria] ?? "servicios_profesionales"
+    const ragContext = await getPromptGuidance(industryCode, {
+      query: `Briefing para llamada con ${lead.industria}. Dolores: ${lead.dolores_principales.join(", ")}. Presupuesto: ${lead.presupuesto}. Urgencia: ${lead.urgencia}`,
+      segmento: null,
+      topK: 6,
+    })
+    const ragSection = ragContext
+      ? `\n\nCONOCIMIENTO DE LA INDUSTRIA (úsalo para enriquecer el briefing con contexto específico del sector):\n${ragContext}`
+      : ""
+
     const prompt = `Eres un asistente de preparación de meetings para un freelancer/agencia de transformación digital para PYMEs LATAM.
 
 Un prospecto acaba de completar un diagnóstico online. El freelancer tiene una llamada programada con esta persona. Necesitas generar un BRIEFING PROFESIONAL que el freelancer lea en 2 minutos antes del meet.
@@ -89,7 +105,7 @@ DATOS DEL PROSPECTO:
 - Urgencia: ${lead.urgencia}
 - Situación específica:
 ${branchContext || "  (sin detalles adicionales)"}
-${iaAnswers}${scoreContext}${websiteContext}${aiDiagContext}
+${iaAnswers}${scoreContext}${websiteContext}${aiDiagContext}${ragSection}
 
 Genera un briefing COMPLETO con estos campos:
 

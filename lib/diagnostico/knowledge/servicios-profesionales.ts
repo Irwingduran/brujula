@@ -157,7 +157,7 @@ const actions: KnowledgeAction[] = [
 ]
 
 export const SERVICIOS_PROFESIONALES_PACK: KnowledgePack = {
-  industryCode: "servicios",
+  industryCode: "servicios_profesionales",
   industryLabel: "Servicios Profesionales",
 
   subsectors: {
@@ -182,11 +182,20 @@ export const SERVICIOS_PROFESIONALES_PACK: KnowledgePack = {
 
   promptGuidance: `Este negocio es de SERVICIOS PROFESIONALES (consultoría, contabilidad, legal, marketing, diseño, etc.).
 NO trates este negocio como un comercio o restaurante. NO menciones "pedidos", "inventario", "delivery" ni "stock".
+
+DATOS DISPONIBLES EN respuestas_branch (úsalos para personalizar):
+- como_captas_clientes: cómo capta nuevos clientes (referidos, LinkedIn, web, inbound, plataformas)
+- como_rastreas_horas: cómo rastrea tiempo por cliente (ninguno, Toggl, Excel, papel)
+- como_creas_propuestas: cómo crea propuestas (desde_cero, plantillas, herramienta, no_hago)
+- como_facturas: cómo factura (excel, plataforma, contador, automatico)
+- como_pones_precios: cómo estructura precios (por_hora, por_proyecto, retainer, mixto)
+- seguimiento_postservicio: cómo da seguimiento post-proyecto (nada, email, llamada, crm)
+
 Enfócate en:
-- Cómo captan y retienen clientes
-- Cómo cotizan y facturan sus servicios
-- Cómo rastrean horas y miden rentabilidad
-- Cómo dan seguimiento post-servicio
+- Cómo captan y retienen clientes (usa como_captas_clientes, canal_mas_efectivo)
+- Cómo cotizan y facturan sus servicios (usa como_creas_propuestas, como_facturas, como_pones_precios)
+- Cómo rastrean horas y miden rentabilidad (usa como_rastreas_horas)
+- Cómo dan seguimiento post-servicio (usa seguimiento_postservicio, como_mides_satisfaccion)
 - Su presencia digital profesional (LinkedIn, portafolio, casos de éxito)
 - La consistencia de sus precios y propuestas`,
 

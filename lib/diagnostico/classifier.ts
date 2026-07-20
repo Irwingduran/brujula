@@ -2,26 +2,27 @@ import type { FormularioCampos, ClasificacionResult } from "./schemas"
 import { detectSubsector } from "./knowledge"
 
 const INDUSTRY_MAP: Record<string, string> = {
-  restaurante: "food",
-  comida: "food",
-  food: "food",
+  restaurante: "restaurante",
+  comida: "restaurante",
+  food: "restaurante",
   retail: "retail",
   tienda: "retail",
   ropa: "retail",
-  servicios_profesionales: "servicios",
-  consultoria: "servicios",
-  servicios: "servicios",
+  servicios_profesionales: "servicios_profesionales",
+  consultoria: "servicios_profesionales",
+  servicios: "servicios_profesionales",
   salud: "salud",
   medicina: "salud",
   educacion: "educacion",
   escuela: "educacion",
-  logistica: "manufactura",
+  logistica: "logistica",
+  transporte: "logistica",
   manufactura: "manufactura",
   fabrica: "manufactura",
-  inmobiliaria: "servicios",
-  bienes_raices: "servicios",
-  tecnologia: "servicios",
-  software: "servicios",
+  inmobiliaria: "inmobiliaria",
+  bienes_raices: "inmobiliaria",
+  tecnologia: "tecnologia",
+  software: "tecnologia",
 }
 
 function mapIndustria(industria: string): string {
