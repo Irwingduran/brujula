@@ -5,11 +5,13 @@ import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 const UMBRAL_DEDUPLICACION = 0.05
 
 const PALABRAS_IDENTIFICABLES = [
-  /(?<!\w)(?:Sr\.?|Sra\.?|C\.?\s*(?:de\s+)?(?:R\.?L\.?|V\.?|A\.?))/gi,
+  /(?<!\w)(?:Sr\.?|Sra\.?|Srita\.?|Don|Doña|Lic\.?|Ing\.?|Dr\.?|Dra\.?)\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,2}/g,
 ]
 
 const PATRONES_NOMBRE_NEGOCIO = [
-  /(?:negocio|empresa|estudio|despacho|consultorio|taller|local)\s+(?:se\s+llama?|llamado?|nombrado?|conocido?\s+como)\s+["'«]?[^"'.!,\n]+["'»]?/gi,
+  /(?:negocio|empresa|estudio|despacho|consultorio|taller|local|tienda|restaurante|farmacia|clínica)\s+(?:se\s+llama?|llamado?|nombrado?|conocido?\s+como|es)\s+["'«]?[^"'.!,\n]+["'»]?/gi,
+  /\b[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&\s-]{2,40}\s+S\.?\s?A\.?\s?(?:de\s?C\.?V\.?)?\b/g,
+  /\b[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&\s-]{2,40}\s+S\.?\s?(?:de\s?)?R\.?L\.?\b/g,
 ]
 
 function anonimizar(contenido: string, nombreNegocio?: string | null): string {

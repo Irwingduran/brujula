@@ -56,7 +56,7 @@ export async function POST(request: Request) {
               console.error("Error guardando diagnóstico en DB:", e)
             }
 
-            extraerChunksDeDiagnostico(resultado, formData.nombre_negocio, leadId)
+            extraerChunksDeDiagnostico(resultado, null, leadId)
               .then((stats) =>
                 console.log(
                   `Auto-mejora: ${stats.insertados} chunks insertados de ${stats.candidatos} candidatos`,
