@@ -16,7 +16,7 @@ interface Chunk {
 
 export function ReviewQueue() {
   const { data, isLoading, mutate } = useSWR<{ chunks: Chunk[] }>(
-    "/api/admin/knowledge/chunks?fuente=auto_generado",
+    "/api/admin/knowledge/chunks?fuente=auto_generado&pendiente=true",
     fetcher
   )
   const [processing, setProcessing] = useState<string | null>(null)

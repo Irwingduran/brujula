@@ -138,16 +138,18 @@ model LeadService {
 }
 
 model KnowledgeChunk {
-  id        String   @id @default(cuid())
-  contenido String
-  embedding Unsupported("vector(1536)")
-  industria String
-  segmento  String?
-  tipo      String   // "sintoma" | "accion" | "benchmark" | "historia" | "pregunta_guia"
-  fuente    String   // "fallback" | "knowledge_pack" | "generico" | "inegi" | "camara" | "auto_generado"
-  activo    Boolean  @default(true)
-  creadoEn  DateTime @default(now())
+  id         String    @id @default(cuid())
+  contenido  String
+  embedding  Unsupported("vector(1536)")
+  industria  String
+  segmento   String?
+  tipo       String    // "sintoma" | "accion" | "benchmark" | "historia" | "pregunta_guia"
+  fuente     String    // "fallback" | "knowledge_pack" | "generico" | "inegi" | "camara" | "auto_generado"
+  activo     Boolean   @default(true)
+  revisadoEn DateTime? // null = pendiente de revisión humana
+  creadoEn   DateTime  @default(now())
 
   @@index([industria, segmento, tipo])
   @@index([activo])
+  @@index([revisadoEn])
 }

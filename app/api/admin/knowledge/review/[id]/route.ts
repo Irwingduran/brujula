@@ -17,10 +17,10 @@ export async function PATCH(
       )
     }
 
-    // Aprobar = mantener activo (confirmar)
-    // Rechazar = desactivar (queda para auditoría)
+    // Aprobar = activar + marcar como revisado
+    // Rechazar = desactivar + marcar como revisado (queda para auditoría)
     await prisma.$executeRawUnsafe(
-      `UPDATE "KnowledgeChunk" SET "activo" = $1 WHERE "id" = $2`,
+      `UPDATE "KnowledgeChunk" SET "activo" = $1, "revisadoEn" = now() WHERE "id" = $2`,
       aprobado,
       id
     )

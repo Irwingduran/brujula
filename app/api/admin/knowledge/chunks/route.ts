@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const industria = searchParams.get("industria") || ""
     const tipo = searchParams.get("tipo") || ""
     const fuente = searchParams.get("fuente") || ""
+    const pendiente = searchParams.get("pendiente") === "true"
 
     const where: string[] = ["1=1"]
     const params: any[] = []
@@ -36,6 +37,9 @@ export async function GET(request: Request) {
       where.push(`"fuente" = $${paramIdx}`)
       params.push(fuente)
       paramIdx++
+    }
+    if (pendiente) {
+      where.push(`"revisadoEn" IS NULL`)
     }
 
     const whereClause = where.join(" AND ")

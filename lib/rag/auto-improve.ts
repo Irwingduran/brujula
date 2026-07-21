@@ -94,7 +94,7 @@ async function insertarSiCalifica(
     `INSERT INTO "KnowledgeChunk"
       ("id", "contenido", "embedding", "industria", "segmento", "tipo", "fuente", "activo")
      VALUES
-      (gen_random_uuid()::text, $1, $2::vector, $3, $4, $5, 'auto_generado', true)`,
+      (gen_random_uuid()::text, $1, $2::vector, $3, $4, $5, 'auto_generado', false)`,
     contenidoAnonimo,
     literal,
     candidate.industria,
