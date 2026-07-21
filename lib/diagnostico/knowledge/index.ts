@@ -71,15 +71,23 @@ export function detectSubsector(
 
 export async function getPromptGuidance(
   industryCode: string,
-  contexto?: { query?: string; segmento?: string | null; topK?: number }
+  contexto?: {
+    query?: string
+    segmento?: string | null
+    etapa?: import("@/lib/rag").RetrievalConfigKey
+    topK?: number
+  }
 ): Promise<string> {
   const startTime = Date.now()
   try {
     const { retrieveKnowledgeChunks, formatAsPromptGuidance, RETRIEVAL_CONFIG } = await import("@/lib/rag")
     const query = contexto?.query ?? `Diagnóstico para negocio de industria ${industryCode}`
-    const config = contexto?.topK
-      ? { topK: contexto.topK, tipos: ["sintoma", "accion", "benchmark", "historia", "pregunta_guia"] as string[] }
-      : { ...RETRIEVAL_CONFIG.diagnostico, tipos: [...RETRIEVAL_CONFIG.diagnostico.tipos] }
+    const etapa = contexto?.etapa ?? "diagnostico"
+    const configBase = RETRIEVAL_CONFIG[etapa]
+    const config = {
+      topK: contexto?.topK ?? configBase.topK,
+      tipos: [...configBase.tipos] as string[],
+    }
 
     const chunks = await retrieveKnowledgeChunks({
       query,

@@ -17,6 +17,8 @@ interface ChunkResultado {
   distancia: number
 }
 
+type SqlParameter = string | number | string[] | null
+
 export async function retrieveKnowledgeChunks({
   query,
   industria,
@@ -27,7 +29,7 @@ export async function retrieveKnowledgeChunks({
   const vector = await embed(query)
   const literal = toPgVectorLiteral(vector)
 
-  const params: any[] = [industria]
+  const params: SqlParameter[] = [industria]
   let paramIdx = 2
 
   let filtroSegmento = ""
@@ -109,7 +111,7 @@ export function formatAsPromptGuidance(
 
 export async function getPromptGuidance(params: RetrievalParams): Promise<string> {
   const chunks = await retrieveKnowledgeChunks(params)
-  return formatAsPromptGuidance(chunks, params as any)
+  return formatAsPromptGuidance(chunks)
 }
 
 export const RETRIEVAL_CONFIG = {

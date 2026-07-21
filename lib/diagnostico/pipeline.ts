@@ -2,14 +2,19 @@ import OpenAI from "openai"
 import type { FormularioCampos, ClasificacionResult, SintomaResult, AccionResult, RedaccionResult, DiagnosticoResult } from "./schemas"
 import { SintomasOutputSchema, AccionesOutputSchema, RedaccionSchema } from "./schemas"
 import { clasificarNegocio } from "./classifier"
-import { validarCoherencia } from "./guardrails"
+import { validarCoherencia, validarGenericity } from "./guardrails"
 import { SYMPTOMS_CATALOG } from "./symptoms-catalog"
 import { ACTIONS_CATALOG } from "./actions-catalog"
-import { getKnowledgePack, getPromptGuidance, getIndustryBenchmarks } from "./knowledge"
+import { getKnowledgePack, getPromptGuidance } from "./knowledge"
 
 const MODEL = process.env.DIAGNOSTICO_MODEL || "gpt-4o"
 const MAX_RETRIES = Number(process.env.DIAGNOSTICO_MAX_RETRIES) || 2
 const TIMEOUT_MS = Number(process.env.DIAGNOSTICO_TIMEOUT_MS) || 15000
+const TEMPERATURES = {
+  sintomas: 0.2,
+  acciones: 0.2,
+  redaccion: 0.5,
+} as const
 
 function getClient(): OpenAI {
   return new OpenAI({
@@ -20,15 +25,19 @@ function getClient(): OpenAI {
 async function llamarLLM(
   systemPrompt: string,
   userPrompt: string,
+  temperature: number,
 ): Promise<string> {
   const client = getClient()
   const response = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 1000,
+    temperature,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
+  }, {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   })
 
   const content = response.choices[0]?.message?.content
@@ -60,13 +69,18 @@ async function llamarLLMSintomas(
   const guidance = await getPromptGuidance(clasificacion.industryCode, {
     query: `Síntomas: ${campos.dolores_principales.join(", ")}. Industria: ${clasificacion.industryCode}. Herramientas: ${campos.herramientas_actuales.join(", ")}`,
     segmento: clasificacion.segmento,
-    topK: 5,
+    etapa: "pipeline_sintomas",
   })
 
   const combinedSymptoms = [
     ...SYMPTOMS_CATALOG.filter((s) => s.segmentosAplica.includes(clasificacion.segmento)),
     ...industrySymptoms,
   ]
+  const respuestasBranch = Object.entries(campos.respuestas_branch ?? {})
+    .map(([campo, respuesta]) => `- ${campo}: ${respuesta}`)
+    .join("\n") || "- Sin respuestas específicas adicionales"
+  const respuestasProfundas = campos.respuestas_ia?.map((respuesta) => `- ${respuesta}`).join("\n")
+    || "- Sin respuestas profundas adicionales"
 
   const systemPrompt = `Eres un analista de transformación digital para PYMEs mexicanas.
 Recibirás las respuestas de un cuestionario de diagnóstico y una lista de síntomas posibles.
@@ -81,6 +95,10 @@ HERRAMIENTAS ACTUALES: ${campos.herramientas_actuales.join(", ")}
 DOLORES DECLARADOS: ${campos.dolores_principales.join(", ")}
 PRESUPUESTO: ${campos.presupuesto}
 URGENCIA: ${campos.urgencia}
+RESPUESTAS ESPECÍFICAS DEL NEGOCIO:
+${respuestasBranch}
+RESPUESTAS PROFUNDAS DEL CUESTIONARIO:
+${respuestasProfundas}
 SEGMENTO DETECTADO: ${clasificacion.segmento}
 MADUREZ DIGITAL: ${clasificacion.madurezDigital}/5
 
@@ -92,7 +110,7 @@ ${formatSymptomsList(combinedSymptoms)}
 Responde SOLO con un array JSON. Cada elemento: { "sintomaId": string, "score": number (1-5), "evidencia": string }`
 
   try {
-    const text = await llamarLLM(systemPrompt, userPrompt)
+    const text = await llamarLLM(systemPrompt, userPrompt, TEMPERATURES.sintomas)
     const parsed = parseJson(text)
     return SintomasOutputSchema.parse(parsed)
   } catch (e) {
@@ -104,16 +122,18 @@ Responde SOLO con un array JSON. Cada elemento: { "sintomaId": string, "score": 
 }
 
 async function llamarLLMAcciones(
+  campos: FormularioCampos,
   clasificacion: ClasificacionResult,
   sintomas: SintomaResult[],
   intento: number = 0,
+  erroresPrevios: string[] = [],
 ): Promise<AccionResult[]> {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const industryActions = knowledge?.actions ?? []
   const guidance = await getPromptGuidance(clasificacion.industryCode, {
-    query: `Acciones para: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}. Presupuesto y madurez: ${clasificacion.madurezDigital}/5`,
+    query: `Acciones para: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}. Presupuesto: ${campos.presupuesto}. Madurez: ${clasificacion.madurezDigital}/5`,
     segmento: clasificacion.segmento,
-    topK: 5,
+    etapa: "pipeline_acciones",
   })
 
   const accionesBase = ACTIONS_CATALOG.filter(
@@ -137,7 +157,8 @@ No inventes acciones fuera del catálogo.`
 - Segmento: ${clasificacion.segmento}
 - Madurez digital: ${clasificacion.madurezDigital}/5
 - Perfil de riesgo: ${clasificacion.perfilRiesgo}
-- Presupuesto: ${"<segun formulario>"}
+- Presupuesto: ${campos.presupuesto}
+- Urgencia: ${campos.urgencia}
 
 ${guidance ? `GUÍA ESPECÍFICA PARA ESTA INDUSTRIA:\n${guidance}\n` : ""}
 
@@ -147,18 +168,27 @@ ${sintomas.map((s) => `- ${s.sintomaId} (score: ${s.score}): ${s.evidencia}`).jo
 ACCIONES DISPONIBLES:
 ${accionesDisponibles.map((a) => `- ${a.id}: ${a.titulo} | presupuesto: ${a.presupuestoRequerido} | impacto: ${a.impacto}`).join("\n")}
 
-Responde SOLO con un array JSON de exactamente 3 objetos. Cada objeto: { "accionId": string, "prioridad": 1|2|3, "justificacion": string }`
+${erroresPrevios.length ? `LA SELECCIÓN ANTERIOR FUE RECHAZADA. Corrige todos estos errores:\n${erroresPrevios.map((error) => `- ${error}`).join("\n")}\n\n` : ""}Responde SOLO con un array JSON de exactamente 3 objetos. Cada objeto: { "accionId": string, "prioridad": 1|2|3, "justificacion": string }`
 
+  let acciones: AccionResult[]
   try {
-    const text = await llamarLLM(systemPrompt, userPrompt)
-    const parsed = parseJson(text)
-    return AccionesOutputSchema.parse(parsed)
+    const text = await llamarLLM(systemPrompt, userPrompt, TEMPERATURES.acciones)
+    acciones = AccionesOutputSchema.parse(parseJson(text))
   } catch (e) {
     if (intento < MAX_RETRIES) {
-      return llamarLLMAcciones(clasificacion, sintomas, intento + 1)
+      return llamarLLMAcciones(campos, clasificacion, sintomas, intento + 1, erroresPrevios)
     }
     throw new Error(`Error en selección de acciones tras ${MAX_RETRIES} reintentos: ${e}`)
   }
+
+  const coherencia = validarCoherencia(clasificacion, sintomas, acciones)
+  if (coherencia.valido) {
+    return acciones
+  }
+  if (intento < MAX_RETRIES) {
+    return llamarLLMAcciones(campos, clasificacion, sintomas, intento + 1, coherencia.errores)
+  }
+  throw new Error(`Acciones incoherentes tras ${MAX_RETRIES} reintentos: ${coherencia.errores.join("; ")}`)
 }
 
 async function llamarLLMRedaccion(
@@ -166,17 +196,8 @@ async function llamarLLMRedaccion(
   sintomas: SintomaResult[],
   acciones: AccionResult[],
   intento: number = 0,
+  erroresPrevios: string[] = [],
 ): Promise<RedaccionResult> {
-  const knowledge = getKnowledgePack(clasificacion.industryCode)
-  const benchmarks = await getIndustryBenchmarks(clasificacion.industryCode, {
-    query: `Benchmarks para: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}`,
-    segmento: clasificacion.segmento,
-  })
-  const guidance = await getPromptGuidance(clasificacion.industryCode, {
-    query: `Redacción diagnóstico: ${clasificacion.industryCode}. Síntomas: ${sintomas.map((s) => s.sintomaId).join(", ")}. Acciones: ${acciones.map((a) => a.accionId).join(", ")}`,
-    segmento: clasificacion.segmento,
-    topK: 6,
-  })
 
   const systemPrompt = `Eres un consultor de negocios que habla de manera directa, clara y sin tecnicismos.
 Recibirás un diagnóstico estructurado de una PYME mexicana en formato JSON.
@@ -189,10 +210,6 @@ No tomes decisiones nuevas — solo comunica lo que ya está en el JSON de entra
 
 INDUSTRIA: ${clasificacion.industryLabel ?? clasificacion.industryCode}${clasificacion.subsector ? ` (${clasificacion.subsector})` : ""}
 
-${guidance ? `GUÍA DE CONTEXTO:\n${guidance}\n` : ""}
-
-${benchmarks.length ? `BENCHMARKS DE LA INDUSTRIA (úsalos para contexto del diagnóstico):\n${benchmarks.map((b) => `- ${b.metrica}: ${b.valor} — ${b.descripcion}`).join("\n")}\n` : ""}
-
 CLASIFICACIÓN:
 - Madurez digital: ${clasificacion.madurezDigital}/5
 - Perfil de riesgo: ${clasificacion.perfilRiesgo}
@@ -203,7 +220,7 @@ ${sintomas.map((s) => `- ${s.sintomaId} (severidad: ${s.score}/5): ${s.evidencia
 PLAN DE ACCIÓN:
 ${acciones.map((a) => `- Prioridad ${a.prioridad}: ${a.accionId} — ${a.justificacion}`).join("\n")}
 
-Responde SOLO con JSON con este formato:
+${erroresPrevios.length ? `LA REDACCIÓN ANTERIOR FUE RECHAZADA. Corrige todos estos errores sin cambiar los síntomas ni las acciones aprobadas:\n${erroresPrevios.map((error) => `- ${error}`).join("\n")}\n\n` : ""}Responde SOLO con JSON con este formato:
 {
   "resumen": "máx 80 palabras",
   "sintomasPrincipales": ["frase 1", "frase 2", "frase 3"],
@@ -213,16 +230,25 @@ Responde SOLO con JSON con este formato:
   "scoreTexto": "Tu negocio está en nivel X de 5"
 }`
 
+  let redaccion: RedaccionResult
   try {
-    const text = await llamarLLM(systemPrompt, userPrompt)
-    const parsed = parseJson(text)
-    return RedaccionSchema.parse(parsed)
+    const text = await llamarLLM(systemPrompt, userPrompt, TEMPERATURES.redaccion)
+    redaccion = RedaccionSchema.parse(parseJson(text))
   } catch (e) {
     if (intento < MAX_RETRIES) {
-      return llamarLLMRedaccion(clasificacion, sintomas, acciones, intento + 1)
+      return llamarLLMRedaccion(clasificacion, sintomas, acciones, intento + 1, erroresPrevios)
     }
     throw new Error(`Error en redacción tras ${MAX_RETRIES} reintentos: ${e}`)
   }
+
+  const genericity = validarGenericity(clasificacion, redaccion.resumen, redaccion.sintomasPrincipales)
+  if (genericity.valido) {
+    return redaccion
+  }
+  if (intento < MAX_RETRIES) {
+    return llamarLLMRedaccion(clasificacion, sintomas, acciones, intento + 1, genericity.errores)
+  }
+  throw new Error(`Redacción genérica o incompatible tras ${MAX_RETRIES} reintentos: ${genericity.errores.join("; ")}`)
 }
 
 function generarFallback(campos: FormularioCampos): DiagnosticoResult {
@@ -230,7 +256,7 @@ function generarFallback(campos: FormularioCampos): DiagnosticoResult {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const fb = knowledge?.fallbackDiagnosis
 
-  return {
+  const fallback: DiagnosticoResult = {
     clasificacion,
     sintomas: [
       { sintomaId: "procesos_manuales", score: 3, evidencia: "No se detectaron herramientas digitales avanzadas" },
@@ -262,6 +288,18 @@ function generarFallback(campos: FormularioCampos): DiagnosticoResult {
       scoreTexto: `Tu negocio está en nivel ${clasificacion.madurezDigital} de 5 de madurez digital`,
     },
   }
+
+  const coherencia = validarCoherencia(fallback.clasificacion, fallback.sintomas, fallback.acciones)
+  const genericity = validarGenericity(
+    fallback.clasificacion,
+    fallback.redaccion.resumen,
+    fallback.redaccion.sintomasPrincipales,
+  )
+  if (!coherencia.valido || !genericity.valido) {
+    throw new Error(`No existe fallback seguro: ${[...coherencia.errores, ...genericity.errores].join("; ")}`)
+  }
+
+  return fallback
 }
 
 export async function ejecutarPipelineDiagnostico(
@@ -278,12 +316,12 @@ export async function ejecutarPipelineDiagnostico(
     const sintomas = await llamarLLMSintomas(campos, clasificacion)
 
     onProgress?.(3, 5, "Seleccionando acciones recomendadas")
-    const acciones = await llamarLLMAcciones(clasificacion, sintomas)
+    const acciones = await llamarLLMAcciones(campos, clasificacion, sintomas)
 
     onProgress?.(4, 5, "Validando coherencia del diagnóstico")
     const coherencia = validarCoherencia(clasificacion, sintomas, acciones)
     if (!coherencia.valido) {
-      console.warn("Errores de coherencia:", coherencia.errores)
+      throw new Error(`Acciones incoherentes después de validación: ${coherencia.errores.join("; ")}`)
     }
 
     onProgress?.(5, 5, "Redactando tu diagnóstico personalizado")

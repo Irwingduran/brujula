@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const [benchmarks, guidance] = await Promise.all([
     getIndustryBenchmarks(industryCode, { query: queryContexto, segmento: null }),
-    getPromptGuidance(industryCode, { query: queryContexto, segmento: null, topK: 8 }),
+    getPromptGuidance(industryCode, { query: queryContexto, segmento: null, etapa: "diagnostico" }),
   ])
 
   if (!process.env.OPENAI_API_KEY) {

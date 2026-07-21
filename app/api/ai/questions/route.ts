@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     const ragContext = await getPromptGuidance(industryCode, {
       query: `Preguntas para ${step1.industria}. Dolores: ${doloresText}. Tamaño: ${step1.tamano_empresa}. Herramientas: ${step1.herramientas_actuales.join(", ")}`,
       segmento: null,
-      topK: 4,
+      etapa: "preguntas",
     })
 
     const ragSection = ragContext

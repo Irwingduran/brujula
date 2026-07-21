@@ -1,15 +1,17 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { AIDiagnosisContextSchema, BranchAnswersSchema, DevelopmentPlanSchema, LeadIdRequestSchema, WebsiteAnalysisSchema } from "@/lib/ai/contracts"
 import { getKnowledgePack, getPromptGuidance } from "@/lib/diagnostico/knowledge"
 import { mapIndustria } from "@/lib/diagnostico/classifier"
 
 export async function POST(request: Request) {
   try {
-    const { leadId } = await request.json()
-    if (!leadId) {
+    const requestData = LeadIdRequestSchema.safeParse(await request.json())
+    if (!requestData.success) {
       return NextResponse.json({ error: "leadId requerido" }, { status: 400 })
     }
+    const { leadId } = requestData.data
 
     const lead = await prisma.lead.findUnique({ where: { id: leadId } })
     if (!lead) {
@@ -20,16 +22,18 @@ export async function POST(request: Request) {
     const knowledge = getKnowledgePack(industryCode)
     const industryLabel = knowledge?.industryLabel ?? lead.industria
 
-    const ra = lead.respuestas_branch as Record<string, string>
-    const wa = lead.website_analisis as Record<string, unknown> | null
-    const diagIa = lead.diagnostico_ia as Record<string, unknown> | null
-    const diag = lead.diagnostico as Record<string, unknown> | null
+    const branchResult = BranchAnswersSchema.safeParse(lead.respuestas_branch)
+    const ra = branchResult.success ? branchResult.data : {}
+    const websiteResult = WebsiteAnalysisSchema.nullable().safeParse(lead.website_analisis)
+    const wa = websiteResult.success ? websiteResult.data : null
+    const aiDiagnosisResult = AIDiagnosisContextSchema.nullable().safeParse(lead.diagnostico_ia)
+    const diagIa = aiDiagnosisResult.success ? aiDiagnosisResult.data : null
 
     const queryContexto = `Plan de desarrollo para ${lead.industria}. Dolores: ${lead.dolores_principales.join(", ")}. Herramientas: ${lead.herramientas_actuales.join(", ")}. Presupuesto: ${lead.presupuesto}. Urgencia: ${lead.urgencia}`
-    const guidance = await getPromptGuidance(industryCode, { query: queryContexto, segmento: null, topK: 5 })
+    const guidance = await getPromptGuidance(industryCode, { query: queryContexto, segmento: null, etapa: "plan_desarrollo" })
 
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(getFallback(lead.industria, industryLabel))
+      return NextResponse.json(getFallback(industryLabel))
     }
 
     const client = new OpenAI({
@@ -106,29 +110,24 @@ REGLAS:
     const text = completion.choices[0]?.message?.content
     if (!text) throw new Error("Respuesta vacía")
 
-    const parsed = JSON.parse(text)
-
-    const required = ["diagnostico_tecnico", "soluciones_recomendadas", "roadmap_implementacion", "observaciones_sitio_web", "plan_seguimiento"]
-    for (const key of required) {
-      if (!parsed[key]) throw new Error(`Campo faltante: ${key}`)
-    }
+    const plan = DevelopmentPlanSchema.parse(JSON.parse(text))
 
     // Save to lead
     await prisma.lead.update({
       where: { id: leadId },
-      data: { plan_desarrollo: parsed as any },
+      data: { plan_desarrollo: plan },
     })
 
-    return NextResponse.json(parsed)
+    return NextResponse.json(plan)
   } catch (error) {
     console.error("Error generando plan de desarrollo:", error)
     const { leadId } = await request.json().catch(() => ({ leadId: null }))
     if (leadId) {
       const lead = await prisma.lead.findUnique({ where: { id: leadId } }).catch(() => null)
       const industryLabel = lead ? (getKnowledgePack(mapIndustria(lead.industria))?.industryLabel ?? lead.industria) : "PYME"
-      const fb = getFallback(lead?.industria ?? "general", industryLabel)
+      const fb = getFallback(industryLabel)
       if (lead) {
-        await prisma.lead.update({ where: { id: leadId }, data: { plan_desarrollo: fb as any } }).catch(() => {})
+        await prisma.lead.update({ where: { id: leadId }, data: { plan_desarrollo: fb } }).catch(() => {})
       }
       return NextResponse.json(fb)
     }
@@ -136,17 +135,17 @@ REGLAS:
   }
 }
 
-function getFallback(industria: string, industryLabel: string) {
-  return {
-    diagnostico_tecnico: `El lead es del sector ${industryLabel} y reporta procesos manuales como principal dolor. La falta de herramientas digitales limita su capacidad de escalar y medir resultados.`,
+function getFallback(industryLabel: string) {
+  return DevelopmentPlanSchema.parse({
+    diagnostico_tecnico: `No fue posible validar el diagnóstico técnico del negocio en ${industryLabel}. Antes de recomendar una solución, se debe confirmar el proceso prioritario, su volumen y los indicadores actuales.`,
     soluciones_recomendadas: [
       {
         problema: "Procesos manuales que consumen tiempo sin métricas claras",
-        solucion: "Automatización de procesos con herramientas low-code y CRM básico",
-        herramientas_sugeridas: ["HubSpot", "Zapier", "Google Workspace"],
-        complejidad: "baja",
+        solucion: "Validar el proceso prioritario y seleccionar una solución proporcional al negocio",
+        herramientas_sugeridas: [],
+        complejidad: "media",
         prioridad: "alta",
-        tiempo_estimado: "2-3 semanas",
+        tiempo_estimado: "Por definir después de validar alcance y prerrequisitos",
       },
     ],
     roadmap_implementacion: {
@@ -155,6 +154,6 @@ function getFallback(industria: string, industryLabel: string) {
       fase_3: "Medición de resultados y escalado a procesos secundarios",
     },
     observaciones_sitio_web: "No se pudo analizar el sitio web del lead para integrar hallazgos en el plan.",
-    plan_seguimiento: "Contactar al lead a los 3 días de enviado el diagnóstico para presentar el plan. Agenda una llamada de 30 min para mostrar la solución prioritaria.",
-  }
+    plan_seguimiento: "Contactar al lead para validar el proceso prioritario, su volumen, responsables y métrica base antes de presentar una propuesta.",
+  })
 }

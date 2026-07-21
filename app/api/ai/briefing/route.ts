@@ -1,17 +1,18 @@
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { AIDiagnosisContextSchema, BriefingSchema, LeadIdRequestSchema, ScoreBreakdownSchema, WebsiteAnalysisSchema } from "@/lib/ai/contracts"
 import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
 import { mapIndustria } from "@/lib/diagnostico/classifier"
-import type { ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
+import type { Lead } from "@prisma/client"
 
 export async function POST(request: Request) {
   try {
-    const { leadId } = await request.json()
-
-    if (!leadId) {
+    const requestData = LeadIdRequestSchema.safeParse(await request.json())
+    if (!requestData.success) {
       return NextResponse.json({ error: "leadId requerido" }, { status: 400 })
     }
+    const { leadId } = requestData.data
 
     const lead = await prisma.lead.findUnique({ where: { id: leadId } })
     if (!lead) {
@@ -32,9 +33,12 @@ export async function POST(request: Request) {
       return NextResponse.json(fallback)
     }
 
-    const score = lead.score as unknown as ScoreBreakdown | null
-    const aiDiag = lead.diagnostico_ia as unknown as AIDiagnosisResult | null
-    const websiteAnalysis = lead.website_analisis as Record<string, unknown> | null
+    const scoreResult = ScoreBreakdownSchema.nullable().safeParse(lead.score)
+    const score = scoreResult.success ? scoreResult.data : null
+    const aiDiagnosisResult = AIDiagnosisContextSchema.nullable().safeParse(lead.diagnostico_ia)
+    const aiDiag = aiDiagnosisResult.success ? aiDiagnosisResult.data : null
+    const websiteResult = WebsiteAnalysisSchema.nullable().safeParse(lead.website_analisis)
+    const websiteAnalysis = websiteResult.success ? websiteResult.data : null
     const branchAnswers = lead.respuestas_branch as Record<string, string>
 
     // Build rich context for the prompt
@@ -53,8 +57,8 @@ export async function POST(request: Request) {
 - Blog: ${websiteAnalysis.tiene_blog ? "Sí" : "No"}
 - E-commerce: ${websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
 - Formulario contacto: ${websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
-- Redes sociales: ${(websiteAnalysis.redes_sociales as string[])?.join(", ") || "Ninguna"}
-- Oportunidades: ${(websiteAnalysis.oportunidades_mejora as string[])?.join(", ") || "Ninguna"}`
+- Redes sociales: ${websiteAnalysis.redes_sociales?.join(", ") || "Ninguna"}
+- Oportunidades: ${websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}`
       : ""
 
     const aiDiagContext = aiDiag
@@ -80,7 +84,7 @@ ${aiDiag.hallazgos_web ? `- Fortalezas web: ${aiDiag.hallazgos_web.fortalezas.jo
     const ragContext = await getPromptGuidance(industryCode, {
       query: `Briefing para llamada con ${lead.industria}. Dolores: ${lead.dolores_principales.join(", ")}. Presupuesto: ${lead.presupuesto}. Urgencia: ${lead.urgencia}`,
       segmento: null,
-      topK: 6,
+      etapa: "briefing",
     })
     const ragSection = ragContext
       ? `\n\nCONOCIMIENTO DE LA INDUSTRIA (úsalo para enriquecer el briefing con contexto específico del sector):\n${ragContext}`
@@ -188,19 +192,10 @@ Responde ÚNICAMENTE con JSON válido:
     const text = completion.choices[0]?.message?.content
     if (!text) throw new Error("Respuesta vacía")
 
-    const parsed = JSON.parse(text)
-
-    // Validate required fields
-    const required = ["resumen_rapido", "perfil", "puntos_conversacion", "propuesta_sugerida"]
-    for (const key of required) {
-      if (!parsed[key]) throw new Error(`Campo faltante: ${key}`)
-    }
-
-    // Add metadata
-    const briefing = {
-      ...parsed,
+    const briefing = BriefingSchema.parse({
+      ...JSON.parse(text),
       generado_at: new Date().toISOString(),
-    }
+    })
 
     // Persist to database
     await prisma.lead.update({
@@ -237,8 +232,7 @@ Responde ÚNICAMENTE con JSON válido:
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getFallback(lead: any) {
+function getFallback(lead: Pick<Lead, "nombre" | "industria" | "tamano_empresa" | "dolores_principales" | "presupuesto" | "urgencia">) {
   return {
     resumen_rapido: `${lead.nombre} tiene un negocio en el sector ${lead.industria} con un equipo de ${lead.tamano_empresa} personas. Busca soluciones para: ${lead.dolores_principales.join(", ")}. Presupuesto: ${lead.presupuesto}. Urgencia: ${lead.urgencia}.`,
     perfil: {
@@ -268,14 +262,11 @@ function getFallback(lead: any) {
       cerrar_con: "Proponer un plan de acción inicial de 30 días con objetivos medibles.",
     },
     propuesta_sugerida: {
-      servicio_primario: "Consultoría de transformación digital",
-      servicios_adicionales: [
-        "Automatización de procesos",
-        "Presencia digital optimizada",
-      ],
-      rango_precio_sugerido: "$500-$2,000 USD/mes",
-      timeline_implementacion: "6-8 semanas para implementación inicial",
-      roi_argumento: "Reducción estimada del 30-40% en tiempo operativo dedicado a tareas manuales.",
+      servicio_primario: "Por definir tras validar las necesidades del negocio",
+      servicios_adicionales: [],
+      rango_precio_sugerido: "Por definir después de la llamada de validación",
+      timeline_implementacion: "Por definir según alcance y prerrequisitos",
+      roi_argumento: "No estimado: primero se debe establecer una línea base del proceso a mejorar.",
     },
     generado_at: new Date().toISOString(),
   }
