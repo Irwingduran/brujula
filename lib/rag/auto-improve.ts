@@ -72,6 +72,7 @@ interface ChunkCandidate {
 async function insertarSiCalifica(
   candidate: ChunkCandidate,
   nombreNegocio?: string | null,
+  leadId?: string | null,
 ): Promise<{ insertado: boolean; razon?: string }> {
   const contenidoAnonimo = anonimizar(candidate.contenido, nombreNegocio)
 
@@ -92,14 +93,15 @@ async function insertarSiCalifica(
   const literal = toPgVectorLiteral(vector)
   await prisma.$executeRawUnsafe(
     `INSERT INTO "KnowledgeChunk"
-      ("id", "contenido", "embedding", "industria", "segmento", "tipo", "fuente", "activo")
+      ("id", "contenido", "embedding", "industria", "segmento", "tipo", "fuente", "activo", "leadId")
      VALUES
-      (gen_random_uuid()::text, $1, $2::vector, $3, $4, $5, 'auto_generado', false)`,
+      (gen_random_uuid()::text, $1, $2::vector, $3, $4, $5, 'auto_generado', false, $6)`,
     contenidoAnonimo,
     literal,
     candidate.industria,
     candidate.segmento,
     candidate.tipo,
+    leadId ?? null,
   )
 
   return { insertado: true }
@@ -108,6 +110,7 @@ async function insertarSiCalifica(
 export async function extraerChunksDeDiagnostico(
   resultado: DiagnosticoResult,
   nombreNegocio?: string | null,
+  leadId?: string | null,
 ): Promise<{ candidatos: number; insertados: number; rechazados: number }> {
   const industria = resultado.clasificacion.industryCode
   const segmento = resultado.clasificacion.segmento ?? null
@@ -146,7 +149,7 @@ export async function extraerChunksDeDiagnostico(
   }
 
   const resultados = await Promise.allSettled(
-    candidates.map((c) => insertarSiCalifica(c, nombreNegocio)),
+    candidates.map((c) => insertarSiCalifica(c, nombreNegocio, leadId)),
   )
 
   const insertados = resultados.filter(

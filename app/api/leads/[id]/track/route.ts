@@ -10,8 +10,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const { evento } = await request.json()
-    // eventos posibles: "visita_propuesta" | "email_abierto"
+    const { evento, valor } = await request.json()
+    // eventos posibles: "visita_propuesta" | "email_abierto" | "feedback_diagnostico"
 
     const lead = await prisma.lead.findUnique({ where: { id } })
     if (!lead) {
@@ -30,6 +30,10 @@ export async function POST(
     if (evento === "email_abierto") {
       updates.emails_abiertos = (lead.emails_abiertos ?? 0) + 1
       updates.score_dinamico = (lead.score_dinamico ?? 0) + 10
+    }
+    if (evento === "feedback_diagnostico") {
+      updates.feedback_diagnostico = valor === "positivo" ? "positivo" : "negativo"
+      updates.feedback_diagnostico_at = new Date()
     }
 
     // Re-clasificar si el score dinámico empuja al lead a HOT

@@ -1,11 +1,13 @@
 "use client"
 
-import { MagnifyingGlass, Warning, Compass, Target, Gauge } from "@phosphor-icons/react"
+import { useState } from "react"
+import { MagnifyingGlass, Warning, Compass, Target, Gauge, ThumbsUp, ThumbsDown } from "@phosphor-icons/react"
 import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 
 interface V2DiagnosisSummaryProps {
   diagnostico: DiagnosticoResult
   isLoading?: boolean
+  leadId?: string | null
 }
 
 const urgenciaColors: Record<string, string> = {
@@ -23,7 +25,19 @@ function getUrgenciaColor(urgencia: string): string {
   return "bg-muted text-muted-foreground border-border"
 }
 
-export function V2DiagnosisSummary({ diagnostico, isLoading = false }: V2DiagnosisSummaryProps) {
+export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V2DiagnosisSummaryProps) {
+  const [feedback, setFeedback] = useState<"positivo" | "negativo" | null>(null)
+
+  async function enviarFeedback(valor: "positivo" | "negativo") {
+    if (!leadId || feedback) return
+    setFeedback(valor)
+    fetch(`/api/leads/${leadId}/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ evento: "feedback_diagnostico", valor }),
+    }).catch(() => {})
+  }
+
   if (isLoading) {
     return (
       <section className="glass-card rounded-2xl overflow-hidden">
@@ -155,6 +169,25 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false }: V2Diagnos
           </div>
         </div>
       </div>
+
+      {/* Feedback */}
+      {leadId && (
+        <div className="flex items-center gap-3 px-6 pb-6 sm:px-8">
+          {feedback ? (
+            <p className="text-sm text-muted-foreground">Gracias por tu retroalimentación.</p>
+          ) : (
+            <>
+              <span className="text-sm text-muted-foreground">¿Te sirvió este diagnóstico?</span>
+              <button onClick={() => enviarFeedback("positivo")} className="rounded-full p-2 hover:bg-muted/50 transition-colors">
+                <ThumbsUp className="h-5 w-5" />
+              </button>
+              <button onClick={() => enviarFeedback("negativo")} className="rounded-full p-2 hover:bg-muted/50 transition-colors">
+                <ThumbsDown className="h-5 w-5" />
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </section>
   )
 }

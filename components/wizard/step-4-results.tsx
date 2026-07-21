@@ -172,7 +172,7 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
 
       {/* Diagnosis Summary — v2 or v1 */}
       {hasV2 ? (
-        <V2DiagnosisSummary diagnostico={v2Diagnosis!} />
+        <V2DiagnosisSummary diagnostico={v2Diagnosis!} leadId={leadId} />
       ) : v2Loading ? (
         <section className="glass-card rounded-2xl overflow-hidden">
           <div className="p-6 sm:p-8 space-y-4">
