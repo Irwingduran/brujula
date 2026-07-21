@@ -1,4 +1,5 @@
 import OpenAI from "openai"
+import { getCachedEmbedding, setCachedEmbedding } from "./cache"
 
 const EMBEDDING_MODEL = "text-embedding-3-small"
 const EMBEDDING_DIMENSIONS = 1536
@@ -17,6 +18,9 @@ let lastRequestTime = 0
 const MIN_INTERVAL_MS = 100
 
 async function throttledEmbed(texto: string): Promise<number[]> {
+  const cached = getCachedEmbedding(texto)
+  if (cached) return cached
+
   const now = Date.now()
   const timeSinceLast = now - lastRequestTime
   if (timeSinceLast < MIN_INTERVAL_MS) {
@@ -36,6 +40,8 @@ async function throttledEmbed(texto: string): Promise<number[]> {
       `Embedding con dimensión inesperada: ${vector.length} (se esperaba ${EMBEDDING_DIMENSIONS})`
     )
   }
+
+  setCachedEmbedding(texto, vector)
   return vector
 }
 

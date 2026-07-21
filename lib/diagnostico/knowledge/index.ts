@@ -73,6 +73,7 @@ export async function getPromptGuidance(
   industryCode: string,
   contexto?: { query?: string; segmento?: string | null; topK?: number }
 ): Promise<string> {
+  const startTime = Date.now()
   try {
     const { retrieveKnowledgeChunks, formatAsPromptGuidance, RETRIEVAL_CONFIG } = await import("@/lib/rag")
     const query = contexto?.query ?? `Diagnóstico para negocio de industria ${industryCode}`
@@ -88,15 +89,24 @@ export async function getPromptGuidance(
       topK: config.topK,
     })
 
+    const durationMs = Date.now() - startTime
+
     if (chunks.length < MIN_CHUNKS_THRESHOLD) {
       console.info(`[RAG] Cobertura insuficiente para industria=${industryCode} (${chunks.length}/${MIN_CHUNKS_THRESHOLD} chunks) — usando fallback estático`)
+      const { recordRagMetric } = await import("@/lib/rag/metrics")
+      recordRagMetric({ hit: false, industry: industryCode, chunksFound: chunks.length, durationMs })
       return getPromptGuidanceStatic(industryCode)
     }
 
-    console.info(`[RAG] ${chunks.length} chunks recuperados para industria=${industryCode}`)
+    const { recordRagMetric } = await import("@/lib/rag/metrics")
+    recordRagMetric({ hit: true, industry: industryCode, chunksFound: chunks.length, durationMs })
+    console.info(`[RAG] ${chunks.length} chunks recuperados para industria=${industryCode} (${durationMs}ms)`)
     return formatAsPromptGuidance(chunks)
   } catch (error) {
+    const durationMs = Date.now() - startTime
     console.warn(`[RAG] Error en retrieval para industria=${industryCode}, usando fallback estático:`, error)
+    const { recordRagMetric } = await import("@/lib/rag/metrics")
+    recordRagMetric({ hit: false, industry: industryCode, chunksFound: 0, durationMs })
     return getPromptGuidanceStatic(industryCode)
   }
 }
