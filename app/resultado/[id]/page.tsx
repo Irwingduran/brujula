@@ -6,7 +6,7 @@ import { DiagnosisSummary } from "@/components/diagnosis/diagnosis-summary"
 import { CheckCircle, Lightbulb, Target, RocketLaunch, Star } from "@phosphor-icons/react/dist/ssr"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import type { DiagnosisResult, ScoreBreakdown, AIDiagnosisResult } from "@/lib/types"
+import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
 import { ResultadoCTAs } from "@/components/diagnosis/resultado-ctas"
 import { ServiciosRecomendados } from "@/components/diagnosis/servicios-recomendados"
 
@@ -269,7 +269,6 @@ async function LegacyResultado({
     : rPlan30
       ? [rPlan30.dia_30 || "", rPlan30.dia_60 || "", rPlan30.dia_90 || ""]
       : [diagnosis.plan_90_dias.mes_1, diagnosis.plan_90_dias.mes_2, diagnosis.plan_90_dias.mes_3]
-  const aiCaso = r.caso_exito as AIDiagnosisResult["caso_exito"] | undefined
 
   return (
     <div className="mt-10 flex flex-col gap-6">
@@ -278,7 +277,6 @@ async function LegacyResultado({
         riesgoPrincipal={String(aiRiesgo ?? "")}
         cambioClave={String(aiCambio ?? "")}
         plan={aiPlan as string[]}
-        casoExito={aiCaso ?? null}
       />
 
       <ServiciosRecomendados leadId={id} />

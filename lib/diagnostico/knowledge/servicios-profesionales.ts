@@ -263,20 +263,6 @@ Enfócate en:
     },
   ],
 
-  successStories: [
-    {
-      empresa: "ConsulTI",
-      problema: "Perdían 12 horas semanales en facturación manual y cotizaciones desde cero.",
-      solucion: "Automatizaron facturación recurrente y crearon 5 plantillas de propuestas estándar.",
-      resultado: "Redujeron tiempo administrativo en un 70% y aumentaron su capacidad de clientes en un 40%.",
-    },
-    {
-      empresa: "LexAsesores",
-      problema: "El 80% de sus leads se enfriaban por falta de seguimiento estructurado.",
-      solucion: "Implementaron un CRM simple con automatización de emails de seguimiento.",
-      resultado: "Aumentaron su tasa de cierre de propuestas del 20% al 45% en 3 meses.",
-    },
-  ],
 
   symptoms,
   actions,

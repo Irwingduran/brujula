@@ -177,7 +177,6 @@ async function llamarLLMRedaccion(
     segmento: clasificacion.segmento,
     topK: 6,
   })
-  const story = knowledge?.successStories?.[0]
 
   const systemPrompt = `Eres un consultor de negocios que habla de manera directa, clara y sin tecnicismos.
 Recibirás un diagnóstico estructurado de una PYME mexicana en formato JSON.
@@ -193,8 +192,6 @@ INDUSTRIA: ${clasificacion.industryLabel ?? clasificacion.industryCode}${clasifi
 ${guidance ? `GUÍA DE CONTEXTO:\n${guidance}\n` : ""}
 
 ${benchmarks.length ? `BENCHMARKS DE LA INDUSTRIA (úsalos para contexto del diagnóstico):\n${benchmarks.map((b) => `- ${b.metrica}: ${b.valor} — ${b.descripcion}`).join("\n")}\n` : ""}
-
-${story ? `CASO DE ÉXITO DE REFERENCIA:\nEmpresa: ${story.empresa}\nProblema: ${story.problema}\nSolución: ${story.solucion}\nResultado: ${story.resultado}\n` : ""}
 
 CLASIFICACIÓN:
 - Madurez digital: ${clasificacion.madurezDigital}/5

@@ -1,14 +1,6 @@
 "use client"
 
-import { MagnifyingGlass, Warning, Compass, CalendarBlank, ArrowRight } from "@phosphor-icons/react"
-
-interface CasoExito {
-  empresa: string
-  industria: string
-  problema: string
-  solucion: string
-  resultado: string
-}
+import { MagnifyingGlass, Warning, Compass, CalendarBlank } from "@phosphor-icons/react"
 
 interface DiagnosisSummaryProps {
   patronNegocio: string
@@ -16,7 +8,6 @@ interface DiagnosisSummaryProps {
   cambioClave: string
   plan: string[]
   isLoading?: boolean
-  casoExito?: CasoExito | null
 }
 
 export function DiagnosisSummary({
@@ -24,7 +15,6 @@ export function DiagnosisSummary({
   riesgoPrincipal,
   cambioClave,
   plan,
-  casoExito,
   isLoading = false,
 }: DiagnosisSummaryProps) {
   if (isLoading) {
@@ -127,42 +117,6 @@ export function DiagnosisSummary({
           </div>
         </div>
       </div>
-
-      {/* Success Story */}
-      {casoExito && (
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-6 sm:p-8 space-y-4">
-            <div className="flex items-center gap-2">
-              <ArrowRight className="h-5 w-5 text-emerald-600" weight="fill" />
-              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
-                Caso similar
-              </span>
-            </div>
-            <div className="rounded-xl bg-emerald-50/50 border border-emerald-100 p-4 sm:p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="font-bold text-foreground">{casoExito.empresa}</span>
-                <span className="text-[11px] text-muted-foreground bg-white px-2 py-0.5 rounded-full border border-emerald-200/50">
-                  {casoExito.industria}
-                </span>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3 text-sm">
-                <div>
-                  <span className="block text-[11px] font-semibold text-rose-600 uppercase tracking-wider mb-1">Reto</span>
-                  <p className="text-muted-foreground">{casoExito.problema}</p>
-                </div>
-                <div>
-                  <span className="block text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-1">Solución</span>
-                  <p className="text-muted-foreground">{casoExito.solucion}</p>
-                </div>
-                <div>
-                  <span className="block text-[11px] font-semibold text-emerald-600 uppercase tracking-wider mb-1">Resultado</span>
-                  <p className="font-semibold text-emerald-700">{casoExito.resultado}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
 }

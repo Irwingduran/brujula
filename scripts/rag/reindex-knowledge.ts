@@ -58,17 +58,6 @@ function construirCandidatos(): ChunkCandidato[] {
       });
     }
 
-    // Historias de éxito
-    for (const h of pack.successStories) {
-      candidatos.push({
-        contenido: `${h.empresa}: ${h.problema} ${h.solucion} Resultado: ${h.resultado}`,
-        industria,
-        segmento: null,
-        tipo: "historia",
-        fuente: "knowledge_pack",
-      });
-    }
-
     // Prompt guidance como chunk tipo pregunta_guia
     candidatos.push({
       contenido: pack.promptGuidance,

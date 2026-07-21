@@ -242,20 +242,6 @@ Enfócate en:
     },
   ],
 
-  successStories: [
-    {
-      empresa: "DentalSonrisa",
-      problema: "Tenían 25% de no-shows y perdían 10 horas semanales en llamadas de confirmación.",
-      solucion: "Implementaron agenda digital con recordatorios automáticos por WhatsApp 48h y 2h antes.",
-      resultado: "Redujeron no-shows al 8% y liberaron 8 horas semanales para atender más pacientes.",
-    },
-    {
-      empresa: "NutriVida",
-      problema: "El 90% de pacientes llegaba por referido, sin canal digital para atraer nuevos.",
-      solucion: "Activaron Google Business, crearon contenido educativo en Instagram y habilitaron teleconsulta.",
-      resultado: "Aumentaron pacientes nuevos un 50% en 4 meses y la teleconsulta generó 15% de ingresos adicionales.",
-    },
-  ],
 
   symptoms,
   actions,

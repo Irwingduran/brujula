@@ -250,20 +250,6 @@ Enfócate en:
     },
   ],
 
-  successStories: [
-    {
-      empresa: "La Cocina de María",
-      problema: "Perdían $800 semanales en mermas sin saber exactamente cuánto ni por qué.",
-      solucion: "Implementaron control de mermas por preparación y analizaron rentabilidad de cada plato.",
-      resultado: "Reducieron mermas en un 45% y aumentaron el margen neto en 6 puntos porcentuales en 3 meses.",
-    },
-    {
-      empresa: "Café Aroma",
-      problema: "El 40% de sus ventas se iban en comisiones de apps de delivery.",
-      solucion: "Crearon canal directo con pedido por WhatsApp Business y sitio web simple.",
-      resultado: "Recuperaron $2,500 mensuales en comisiones y aumentaron pedidos directos un 60%.",
-    },
-  ],
 
   symptoms,
   actions,

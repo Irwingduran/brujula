@@ -27,13 +27,6 @@ export interface IndustryBenchmark {
   descripcion: string
 }
 
-export interface SuccessStory {
-  empresa: string
-  problema: string
-  solucion: string
-  resultado: string
-}
-
 export interface KnowledgePack {
   industryCode: string
   industryLabel: string
@@ -44,7 +37,6 @@ export interface KnowledgePack {
 
   maturityDimensions: MaturityDimension[]
   benchmarks: IndustryBenchmark[]
-  successStories: SuccessStory[]
 
   symptoms: KnowledgeSymptom[]
   actions: KnowledgeAction[]

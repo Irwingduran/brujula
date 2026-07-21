@@ -739,23 +739,6 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
                   </div>
                 </div>
               )}
-
-              {/* Caso de éxito */}
-              {lead.diagnostico_ia.caso_exito && (
-                <div className="rounded-lg bg-muted/30 border border-border p-3">
-                  <div className="text-xs font-semibold text-muted-foreground mb-1">Caso de éxito similar</div>
-                  <div className="text-xs font-bold text-card-foreground">{lead.diagnostico_ia.caso_exito.empresa}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    <span className="text-red-600 font-medium">Reto:</span> {lead.diagnostico_ia.caso_exito.problema}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    <span className="text-blue-600 font-medium">Solución:</span> {lead.diagnostico_ia.caso_exito.solucion}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    <span className="text-emerald-600 font-medium">Resultado:</span> {lead.diagnostico_ia.caso_exito.resultado}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

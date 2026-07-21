@@ -215,20 +215,6 @@ NO trates este negocio como una consultoría o servicio profesional.`,
     },
   ],
 
-  successStories: [
-    {
-      empresa: "Moda Express",
-      problema: "Perdían 8 horas semanales haciendo inventario manual y tenían diferencias de stock del 15%.",
-      solucion: "Implementaron un POS digital con control de inventario en tiempo real.",
-      resultado: "Eliminaron los errores de stock, redujeron mermas en un 40% y duplicaron la velocidad de atención.",
-    },
-    {
-      empresa: "TecnoShop",
-      problema: "El 70% de sus clientes preguntaban precios por WhatsApp pero no llegaban a comprar.",
-      solucion: "Sincronizaron catálogo de WhatsApp con inventario real y activaron Google Business.",
-      resultado: "Aumentaron las ventas en un 35% y redujeron consultas repetitivas en un 60%.",
-    },
-  ],
 
   symptoms,
   actions,

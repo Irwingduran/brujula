@@ -144,4 +144,4 @@ export async function getIndustryBenchmarks(
   }
 }
 
-export type { KnowledgePack, KnowledgeSymptom, KnowledgeAction, MaturityDimension, IndustryBenchmark, SuccessStory } from "./types"
+export type { KnowledgePack, KnowledgeSymptom, KnowledgeAction, MaturityDimension, IndustryBenchmark } from "./types"

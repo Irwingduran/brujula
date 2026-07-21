@@ -249,20 +249,6 @@ Enfócate en:
     },
   ],
 
-  successStories: [
-    {
-      empresa: "Grupo Hogar",
-      problema: "Perdían 40% de leads por falta de seguimiento estructurado, todos en WhatsApp sin orden.",
-      solucion: "Implementaron CRM con pipeline automatizado y recordatorios de seguimiento a los 3, 7 y 15 días.",
-      resultado: "Aumentaron tasa de conversión del 3% al 7% y redujeron tiempo promedio de cierre en 20 días.",
-    },
-    {
-      empresa: "Inmobiliaria Valle",
-      problema: "El 80% de sus ventas dependían de un solo portal inmobiliario, sin canal propio.",
-      solucion: "Crearon sitio web con listings propios, activaron Google Business y empezaron a generar leads propios.",
-      resultado: "Reducieron dependencia de portales al 40% y aumentaron ingresos por comisiones un 35%.",
-    },
-  ],
 
   symptoms,
   actions,

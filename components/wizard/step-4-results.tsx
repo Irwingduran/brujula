@@ -207,7 +207,6 @@ export function Step4Results({ diagnosis, score, nombre, email, telefono, leadId
           riesgoPrincipal={displayDiagnosis!.riesgo_principal || ""}
           cambioClave={displayDiagnosis!.cambio_clave || ""}
           plan={displayPlan}
-          casoExito={aiDiagnosis?.caso_exito}
           isLoading={aiLoading && !displayDiagnosis!.patron_negocio}
         />
       )}

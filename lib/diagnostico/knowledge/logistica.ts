@@ -250,20 +250,6 @@ Enfócate en:
     },
   ],
 
-  successStories: [
-    {
-      empresa: "RápidoExpress",
-      problema: "Sus repartidores perdían 2 horas diarias en rutas ineficientes y los clientes preguntaban constantly por sus paquetes.",
-      solucion: "Implementaron TMS con optimización de rutas y portal de tracking para clientes.",
-      resultado: "Redujeron tiempo de entrega un 35% y las llamadas de seguimiento se redujeron un 70%.",
-    },
-    {
-      empresa: "AlmacenTotal",
-      problema: "El 85% de sus ingresos venía de un solo cliente, alto riesgo de negocio.",
-      solucion: "Diversificaron cartera con estrategia de prospección activa y servicio de e-commerce fulfillment.",
-      resultado: "Reducieron dependencia del cliente principal al 40% y aumentaron ingresos totales un 25%.",
-    },
-  ],
 
   symptoms,
   actions,

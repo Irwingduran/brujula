@@ -160,13 +160,6 @@ export interface AIDiagnosisResult {
     mes_2: string
     mes_3: string
   }
-  caso_exito: {
-    empresa: string
-    industria: string
-    problema: string
-    solucion: string
-    resultado: string
-  }
 
   // ─── [ADMIN] — Campos legacy del CRM (opcional) ───
   titulo_servicio?: string
