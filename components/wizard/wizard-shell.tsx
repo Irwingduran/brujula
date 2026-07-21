@@ -143,7 +143,9 @@ export function WizardShell() {
                   } else if (event.tipo === "completado") {
                     setV2Diagnosis({
                       clasificacion: event.clasificacion,
+                      evidence: event.evidence ?? [],
                       sintomas: event.sintomas,
+                      findings: event.findings ?? [],
                       acciones: event.acciones,
                       redaccion: event.redaccion,
                     })

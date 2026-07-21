@@ -53,7 +53,7 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
     )
   }
 
-  const { redaccion, clasificacion, sintomas } = diagnostico
+  const { redaccion, clasificacion, sintomas, findings } = diagnostico
 
   return (
     <section className="space-y-5">
@@ -114,6 +114,32 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
               </li>
             ))}
           </ul>
+          {sintomas.length > 0 && (
+            <div className="mt-5 space-y-3 border-t border-rose-100 pt-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Por qué detectamos esto
+              </p>
+              {sintomas.map((sintoma) => {
+                const references = sintoma.evidenceIds
+                  .map((id) => diagnostico.evidence.find((evidence) => evidence.id === id))
+                  .filter((evidence): evidence is NonNullable<typeof evidence> => Boolean(evidence))
+                return (
+                  <div key={sintoma.sintomaId} className="rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold capitalize text-rose-800">{sintoma.sintomaId.replace(/_/g, " ")}</span>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-rose-700">Confianza {sintoma.confidence}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-foreground">{sintoma.evidencia}</p>
+                    <ul className="mt-2 space-y-1">
+                      {references.map((evidence) => (
+                        <li key={evidence.id} className="text-xs text-muted-foreground">• {evidence.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {/* Chips de síntomas con scores */}
           {sintomas && sintomas.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -130,6 +156,40 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
           )}
         </div>
       </div>
+
+      {findings.length > 0 && (
+        <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-amber-500">
+          <div className="p-6 sm:p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Compass className="h-5 w-5 text-amber-600" weight="fill" />
+              <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                Hallazgos prioritarios
+              </span>
+            </div>
+            <div className="space-y-4">
+              {findings.map((finding) => (
+                <article key={finding.id} className="rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className="text-sm font-bold text-foreground">{finding.title}</h3>
+                    <div className="flex gap-2 text-[10px] font-medium">
+                      <span className="rounded-full bg-white px-2 py-0.5 text-amber-800">Severidad {finding.severity}/5</span>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-amber-800">Confianza {finding.confidence}</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground">{finding.summary}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground"><strong className="text-foreground">Impacto probable:</strong> {finding.businessImpact}</p>
+                  {(finding.missingInformation.length > 0 || finding.contradictions.length > 0) && (
+                    <div className="mt-3 space-y-2 border-t border-amber-100 pt-3 text-xs text-muted-foreground">
+                      {finding.missingInformation.length > 0 && <p><strong className="text-foreground">Para confirmarlo conviene conocer:</strong> {finding.missingInformation.join(" · ")}</p>}
+                      {finding.contradictions.length > 0 && <p><strong className="text-foreground">Información a revisar:</strong> {finding.contradictions.join(" · ")}</p>}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Plan de acción */}
       <div className="glass-card rounded-2xl overflow-hidden">

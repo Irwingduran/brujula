@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ejecutarPipelineDiagnostico } from "@/lib/diagnostico/pipeline"
 import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
+import { EvidenceItemSchema } from "@/lib/ai/contracts"
+import { buildDiagnosticEvidence } from "@/lib/diagnostico/evidence"
 import { extraerChunksDeDiagnostico } from "@/lib/rag/auto-improve"
 
 function eventStream(data: unknown): string {
@@ -22,6 +24,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Datos inválidos" }, { status: 400 })
     }
 
+    const fallbackEvidence = buildDiagnosticEvidence(parsed.data)
+    let evidence = fallbackEvidence
+    if (leadId) {
+      const lead = await prisma.lead.findUnique({
+        where: { id: leadId },
+        select: { evidencia_json: true },
+      })
+      const storedEvidence = EvidenceItemSchema.array().safeParse(lead?.evidencia_json)
+      if (storedEvidence.success && storedEvidence.data.length > 0) {
+        evidence = storedEvidence.data
+      }
+    }
+
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
@@ -32,8 +47,8 @@ export async function POST(request: Request) {
         try {
           const startTime = Date.now()
 
-          sendEvent(1, 5, "Analizando perfil de tu negocio")
-          const resultado = await ejecutarPipelineDiagnostico(parsed.data, sendEvent)
+          sendEvent(1, 6, "Preparando tu diagnóstico")
+          const resultado = await ejecutarPipelineDiagnostico(parsed.data, sendEvent, evidence)
 
           const durationMs = Date.now() - startTime
 

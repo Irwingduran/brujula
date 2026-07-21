@@ -12,10 +12,21 @@ export const ClasificacionSchema = z.object({
 
 export type ClasificacionResult = z.infer<typeof ClasificacionSchema>
 
+export const ConfidenceSchema = z.enum(["alta", "media", "baja"])
+
+export const PublicEvidenceSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  source: z.enum(["questionnaire", "adaptive_answer", "website", "google_business", "admin"]),
+  reliability: z.enum(["declared", "observed", "inferred"]),
+})
+
 export const SintomaSchema = z.object({
   sintomaId: z.string().min(1),
   score: z.number().int().min(1).max(5),
   evidencia: z.string().min(1),
+  evidenceIds: z.array(z.string().min(1)).min(1).max(3),
+  confidence: ConfidenceSchema,
 })
 
 export const SintomasOutputSchema = z
@@ -24,6 +35,42 @@ export const SintomasOutputSchema = z
   .max(5)
 
 export type SintomaResult = z.infer<typeof SintomaSchema>
+
+const FindingBaseSchema = z.object({
+  symptomIds: z.array(z.string().min(1)).min(1).max(3),
+  title: z.string().min(1).max(100),
+  summary: z.string().min(1).max(350),
+  businessImpact: z.string().min(1).max(350),
+  confidence: ConfidenceSchema,
+  missingInformation: z.array(z.string().min(1)).max(3),
+  contradictions: z.array(z.string().min(1)).max(3),
+})
+
+function requireContextForLowConfidence(
+  finding: z.infer<typeof FindingBaseSchema>,
+  context: z.RefinementCtx,
+) {
+  if (finding.confidence === "baja" && !finding.missingInformation.length && !finding.contradictions.length) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["confidence"],
+      message: "La confianza baja debe explicar información faltante o una contradicción",
+    })
+  }
+}
+
+export const FindingDraftSchema = FindingBaseSchema.superRefine(requireContextForLowConfidence)
+export type FindingDraft = z.infer<typeof FindingDraftSchema>
+
+export const FindingsDraftOutputSchema = z.array(FindingDraftSchema).min(2).max(3)
+
+export const DiagnosticFindingSchema = FindingBaseSchema.extend({
+  id: z.string().min(1),
+  evidenceIds: z.array(z.string().min(1)).min(1),
+  severity: z.number().int().min(1).max(5),
+}).superRefine(requireContextForLowConfidence)
+
+export type DiagnosticFinding = z.infer<typeof DiagnosticFindingSchema>
 
 export const AccionSchema = z.object({
   accionId: z.string().min(1),
@@ -56,7 +103,9 @@ export type RedaccionResult = z.infer<typeof RedaccionSchema>
 
 export const DiagnosticoFinalSchema = z.object({
   clasificacion: ClasificacionSchema,
+  evidence: z.array(PublicEvidenceSchema),
   sintomas: SintomasOutputSchema,
+  findings: z.array(DiagnosticFindingSchema).min(1).max(3),
   acciones: AccionesOutputSchema,
   redaccion: RedaccionSchema,
 })

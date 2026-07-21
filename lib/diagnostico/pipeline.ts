@@ -1,17 +1,20 @@
 import OpenAI from "openai"
-import type { FormularioCampos, ClasificacionResult, SintomaResult, AccionResult, RedaccionResult, DiagnosticoResult } from "./schemas"
-import { SintomasOutputSchema, AccionesOutputSchema, RedaccionSchema } from "./schemas"
+import type { EvidenceItem } from "@/lib/ai/contracts"
+import type { FormularioCampos, ClasificacionResult, SintomaResult, DiagnosticFinding, FindingDraft, AccionResult, RedaccionResult, DiagnosticoResult } from "./schemas"
+import { SintomasOutputSchema, FindingsDraftOutputSchema, DiagnosticFindingSchema, AccionesOutputSchema, RedaccionSchema } from "./schemas"
 import { clasificarNegocio } from "./classifier"
 import { validarCoherencia, validarGenericity } from "./guardrails"
 import { SYMPTOMS_CATALOG } from "./symptoms-catalog"
 import { ACTIONS_CATALOG } from "./actions-catalog"
 import { getKnowledgePack, getPromptGuidance } from "./knowledge"
+import { buildDiagnosticEvidence, formatEvidenceValue, getPublicEvidenceLabel } from "./evidence"
 
 const MODEL = process.env.DIAGNOSTICO_MODEL || "gpt-4o"
 const MAX_RETRIES = Number(process.env.DIAGNOSTICO_MAX_RETRIES) || 2
 const TIMEOUT_MS = Number(process.env.DIAGNOSTICO_TIMEOUT_MS) || 15000
 const TEMPERATURES = {
   sintomas: 0.2,
+  hallazgos: 0.2,
   acciones: 0.2,
   redaccion: 0.5,
 } as const
@@ -59,9 +62,35 @@ function formatSymptomsList(sintomas: { id: string; nombre: string; descripcion:
   return sintomas.map((s) => `- ${s.id}: ${s.nombre} — ${s.descripcion}`).join("\n")
 }
 
+function buildPublicEvidence(evidence: EvidenceItem[]) {
+  return evidence.map((item) => ({
+    id: item.id,
+    label: getPublicEvidenceLabel(item),
+    source: item.source,
+    reliability: item.reliability,
+  }))
+}
+
+function validateSymptomEvidence(sintomas: SintomaResult[], evidence: EvidenceItem[]) {
+  const validIds = new Set(evidence.map((item) => item.id))
+  const invalidIds = sintomas.flatMap((sintoma) =>
+    sintoma.evidenceIds.filter((id) => !validIds.has(id)),
+  )
+
+  if (invalidIds.length > 0) {
+    throw new Error(`Referencias de evidencia inválidas: ${[...new Set(invalidIds)].join(", ")}`)
+  }
+}
+
+function getFallbackEvidenceIds(evidence: EvidenceItem[], field: string): string[] {
+  const matchingIds = evidence.filter((item) => item.field === field).map((item) => item.id)
+  return (matchingIds.length ? matchingIds : evidence.map((item) => item.id)).slice(0, 1)
+}
+
 async function llamarLLMSintomas(
   campos: FormularioCampos,
   clasificacion: ClasificacionResult,
+  evidence: EvidenceItem[],
   intento: number = 0,
 ): Promise<SintomaResult[]> {
   const knowledge = getKnowledgePack(clasificacion.industryCode)
@@ -85,10 +114,16 @@ async function llamarLLMSintomas(
     ? `SITIO WEB OBSERVADO (${campos.url_sitio ?? campos.website_analysis.url ?? "URL no disponible"}):\n- Descripción: ${campos.website_analysis.descripcion ?? "No disponible"}\n- Contenido: ${campos.website_analysis.resumen_contenido ?? "No disponible"}\n- Blog: ${campos.website_analysis.tiene_blog ? "Sí" : "No confirmado"}\n- E-commerce: ${campos.website_analysis.tiene_ecommerce ? "Sí" : "No confirmado"}\n- Formulario de contacto: ${campos.website_analysis.tiene_formulario_contacto ? "Sí" : "No confirmado"}\n- Oportunidades observadas: ${campos.website_analysis.oportunidades_mejora?.join(", ") || "No disponible"}`
     : "SITIO WEB: sin observaciones verificables"
 
+  const evidenceContext = evidence
+    .map((item) => `- ${item.id} | ${item.source}/${item.reliability} | ${item.field}: ${formatEvidenceValue(item.normalizedValue)}`)
+    .join("\n")
+
   const systemPrompt = `Eres un analista de transformación digital para PYMEs mexicanas.
 Recibirás las respuestas de un cuestionario de diagnóstico y una lista de síntomas posibles.
 Tu tarea: identificar entre 2 y 5 síntomas de la lista que mejor describen la situación del negocio.
 Para cada síntoma asigna un score del 1 al 5 según la severidad evidenciada en las respuestas.
+Para cada síntoma incluye entre 1 y 3 evidenceIds tomados EXCLUSIVAMENTE de la lista EVIDENCIA DISPONIBLE y una confianza: alta, media o baja.
+La confianza debe ser baja si la evidencia es escasa o indirecta.
 Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin bloques de código markdown.
 No inventes síntomas que no estén en la lista. No agregues texto fuera del JSON.`
 
@@ -103,6 +138,8 @@ ${respuestasBranch}
 RESPUESTAS PROFUNDAS DEL CUESTIONARIO:
 ${respuestasProfundas}
 ${analisisWeb}
+EVIDENCIA DISPONIBLE (usa únicamente estos IDs):
+${evidenceContext}
 SEGMENTO DETECTADO: ${clasificacion.segmento}
 MADUREZ DIGITAL: ${clasificacion.madurezDigital}/5
 
@@ -111,18 +148,109 @@ ${guidance ? `GUÍA ESPECÍFICA PARA ESTA INDUSTRIA:\n${guidance}\n` : ""}
 SÍNTOMAS DISPONIBLES (elige solo de esta lista):
 ${formatSymptomsList(combinedSymptoms)}
 
-Responde SOLO con un array JSON. Cada elemento: { "sintomaId": string, "score": number (1-5), "evidencia": string }`
+Responde SOLO con un array JSON. Cada elemento: { "sintomaId": string, "score": number (1-5), "evidencia": string, "evidenceIds": [string], "confidence": "alta"|"media"|"baja" }`
 
   try {
     const text = await llamarLLM(systemPrompt, userPrompt, TEMPERATURES.sintomas)
-    const parsed = parseJson(text)
-    return SintomasOutputSchema.parse(parsed)
+    const parsed = SintomasOutputSchema.parse(parseJson(text))
+    validateSymptomEvidence(parsed, evidence)
+    return parsed
   } catch (e) {
     if (intento < MAX_RETRIES) {
-      return llamarLLMSintomas(campos, clasificacion, intento + 1)
+      return llamarLLMSintomas(campos, clasificacion, evidence, intento + 1)
     }
     throw new Error(`Error en análisis de síntomas tras ${MAX_RETRIES} reintentos: ${e}`)
   }
+}
+
+const CONFIDENCE_RANK = { baja: 1, media: 2, alta: 3 } as const
+
+function deriveFindings(drafts: FindingDraft[], sintomas: SintomaResult[]): DiagnosticFinding[] {
+  const symptomsById = new Map(sintomas.map((sintoma) => [sintoma.sintomaId, sintoma]))
+
+  return drafts.map((draft, index) => {
+    const uniqueSymptomIds = [...new Set(draft.symptomIds)]
+    const selectedSymptoms = uniqueSymptomIds.map((id) => symptomsById.get(id))
+    if (selectedSymptoms.some((symptom) => !symptom)) {
+      const invalidIds = uniqueSymptomIds.filter((id) => !symptomsById.has(id))
+      throw new Error(`Referencias de síntomas inválidas en hallazgos: ${invalidIds.join(", ")}`)
+    }
+
+    const supportingSymptoms = selectedSymptoms as SintomaResult[]
+    const supportConfidence = supportingSymptoms.reduce(
+      (lowest, symptom) => CONFIDENCE_RANK[symptom.confidence] < CONFIDENCE_RANK[lowest] ? symptom.confidence : lowest,
+      supportingSymptoms[0].confidence,
+    )
+    const confidence = CONFIDENCE_RANK[draft.confidence] > CONFIDENCE_RANK[supportConfidence]
+      ? supportConfidence
+      : draft.confidence
+    const missingInformation = confidence === "baja" && !draft.missingInformation.length && !draft.contradictions.length
+      ? ["Falta información adicional para confirmar este hallazgo con mayor certeza."]
+      : draft.missingInformation
+
+    return DiagnosticFindingSchema.parse({
+      ...draft,
+      id: `finding_${index + 1}`,
+      symptomIds: uniqueSymptomIds,
+      evidenceIds: [...new Set(supportingSymptoms.flatMap((symptom) => symptom.evidenceIds))],
+      severity: Math.max(...supportingSymptoms.map((symptom) => symptom.score)),
+      confidence,
+      missingInformation,
+    })
+  })
+}
+
+async function llamarLLMHallazgos(
+  sintomas: SintomaResult[],
+  intento: number = 0,
+): Promise<DiagnosticFinding[]> {
+  const systemPrompt = `Eres un consultor de negocios que convierte síntomas ya validados en hallazgos claros para el dueño de una PYME mexicana.
+Solo puedes basarte en los síntomas entregados. No inventes hechos, métricas, causas, resultados comerciales ni evidencia nueva.
+El impacto debe describirse como posible o probable, nunca garantizado. Si la evidencia es insuficiente, indirecta o contradictoria, decláralo en missingInformation o contradictions y usa confianza baja.
+Combina solo síntomas relacionados; produce entre 2 y 3 hallazgos distintos y comprensibles.
+Responde ÚNICAMENTE con JSON válido, sin texto adicional ni bloques markdown.`
+
+  const userPrompt = `SÍNTOMAS VALIDADOS (usa exclusivamente estos sintomaId):
+${sintomas.map((symptom) => `- ${symptom.sintomaId} | severidad ${symptom.score}/5 | confianza ${symptom.confidence} | evidencia: ${symptom.evidencia} | evidencia disponible: ${symptom.evidenceIds.join(", ")}`).join("\n")}
+
+Responde SOLO con un array JSON de 2 a 3 objetos con esta forma:
+{
+  "symptomIds": ["uno o más sintomaId existentes"],
+  "title": "título concreto y comprensible",
+  "summary": "qué observamos, sin añadir hechos nuevos",
+  "businessImpact": "impacto probable, sin prometer resultados",
+  "confidence": "alta|media|baja",
+  "missingInformation": ["dato que convendría conocer para confirmarlo"],
+  "contradictions": ["posible contradicción entre los síntomas, si existe"]
+}`
+
+  try {
+    const text = await llamarLLM(systemPrompt, userPrompt, TEMPERATURES.hallazgos)
+    const drafts = FindingsDraftOutputSchema.parse(parseJson(text))
+    return deriveFindings(drafts, sintomas)
+  } catch (error) {
+    if (intento < MAX_RETRIES) {
+      return llamarLLMHallazgos(sintomas, intento + 1)
+    }
+    throw new Error(`Error al generar hallazgos tras ${MAX_RETRIES} reintentos: ${error}`)
+  }
+}
+
+function generarHallazgosFallback(sintomas: SintomaResult[]): DiagnosticFinding[] {
+  return sintomas.slice(0, 3).map((sintoma, index) => DiagnosticFindingSchema.parse({
+    id: `finding_${index + 1}`,
+    symptomIds: [sintoma.sintomaId],
+    evidenceIds: sintoma.evidenceIds,
+    severity: sintoma.score,
+    title: `Atender ${sintoma.sintomaId.replaceAll("_", " ")}`,
+    summary: sintoma.evidencia,
+    businessImpact: "Puede consumir capacidad operativa o dificultar el seguimiento; falta medir el impacto exacto en el negocio.",
+    confidence: sintoma.confidence,
+    missingInformation: sintoma.confidence === "baja"
+      ? ["Falta información adicional para confirmar este hallazgo con mayor certeza."]
+      : [],
+    contradictions: [],
+  }))
 }
 
 async function llamarLLMAcciones(
@@ -255,17 +383,47 @@ ${erroresPrevios.length ? `LA REDACCIÓN ANTERIOR FUE RECHAZADA. Corrige todos e
   throw new Error(`Redacción genérica o incompatible tras ${MAX_RETRIES} reintentos: ${genericity.errores.join("; ")}`)
 }
 
-function generarFallback(campos: FormularioCampos): DiagnosticoResult {
+function generarFallback(campos: FormularioCampos, evidence: EvidenceItem[]): DiagnosticoResult {
   const clasificacion = clasificarNegocio(campos)
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const fb = knowledge?.fallbackDiagnosis
+  const fallbackEvidence = evidence.length ? evidence : buildDiagnosticEvidence(campos)
 
   const fallback: DiagnosticoResult = {
     clasificacion,
+    evidence: buildPublicEvidence(fallbackEvidence),
     sintomas: [
-      { sintomaId: "procesos_manuales", score: 3, evidencia: "No se detectaron herramientas digitales avanzadas" },
-      { sintomaId: "sin_metricas", score: 2, evidencia: "No hay indicios de medición de resultados" },
+      {
+        sintomaId: "procesos_manuales",
+        score: 3,
+        evidencia: "Tus herramientas actuales indican que varios procesos todavía requieren trabajo manual.",
+        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "herramientas_actuales"),
+        confidence: "media",
+      },
+      {
+        sintomaId: "sin_metricas",
+        score: 2,
+        evidencia: "Aún falta medir de forma consistente los resultados de la operación.",
+        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "dolores_principales"),
+        confidence: "baja",
+      },
     ],
+    findings: generarHallazgosFallback([
+      {
+        sintomaId: "procesos_manuales",
+        score: 3,
+        evidencia: "Tus herramientas actuales indican que varios procesos todavía requieren trabajo manual.",
+        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "herramientas_actuales"),
+        confidence: "media",
+      },
+      {
+        sintomaId: "sin_metricas",
+        score: 2,
+        evidencia: "Aún falta medir de forma consistente los resultados de la operación.",
+        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "dolores_principales"),
+        confidence: "baja",
+      },
+    ]),
     acciones: [
       { accionId: "implementar_whatsapp_business", prioridad: 1, justificacion: "Paso inicial de bajo costo para organizar la comunicación" },
       { accionId: "capacitacion_equipo_digital", prioridad: 2, justificacion: "Preparar al equipo para la transformación digital" },
@@ -293,6 +451,7 @@ function generarFallback(campos: FormularioCampos): DiagnosticoResult {
     },
   }
 
+  validateSymptomEvidence(fallback.sintomas, fallbackEvidence)
   const coherencia = validarCoherencia(fallback.clasificacion, fallback.sintomas, fallback.acciones)
   const genericity = validarGenericity(
     fallback.clasificacion,
@@ -309,34 +468,38 @@ function generarFallback(campos: FormularioCampos): DiagnosticoResult {
 export async function ejecutarPipelineDiagnostico(
   campos: FormularioCampos,
   onProgress?: (paso: number, total: number, descripcion: string) => void,
+  evidence: EvidenceItem[] = buildDiagnosticEvidence(campos),
 ): Promise<DiagnosticoResult> {
   const startTime = Date.now()
 
   try {
-    onProgress?.(1, 5, "Clasificando tu negocio")
+    onProgress?.(1, 6, "Clasificando tu negocio")
     const clasificacion = clasificarNegocio(campos)
 
-    onProgress?.(2, 5, "Analizando síntomas digitales")
-    const sintomas = await llamarLLMSintomas(campos, clasificacion)
+    onProgress?.(2, 6, "Analizando síntomas digitales")
+    const sintomas = await llamarLLMSintomas(campos, clasificacion, evidence)
 
-    onProgress?.(3, 5, "Seleccionando acciones recomendadas")
+    onProgress?.(3, 6, "Identificando hallazgos prioritarios")
+    const findings = await llamarLLMHallazgos(sintomas)
+
+    onProgress?.(4, 6, "Seleccionando acciones recomendadas")
     const acciones = await llamarLLMAcciones(campos, clasificacion, sintomas)
 
-    onProgress?.(4, 5, "Validando coherencia del diagnóstico")
+    onProgress?.(5, 6, "Validando coherencia del diagnóstico")
     const coherencia = validarCoherencia(clasificacion, sintomas, acciones)
     if (!coherencia.valido) {
       throw new Error(`Acciones incoherentes después de validación: ${coherencia.errores.join("; ")}`)
     }
 
-    onProgress?.(5, 5, "Redactando tu diagnóstico personalizado")
+    onProgress?.(6, 6, "Redactando tu diagnóstico personalizado")
     const redaccion = await llamarLLMRedaccion(clasificacion, sintomas, acciones)
 
     const duration = Date.now() - startTime
     console.log(`Pipeline completado en ${duration}ms`)
 
-    return { clasificacion, sintomas, acciones, redaccion }
+    return { clasificacion, evidence: buildPublicEvidence(evidence), sintomas, findings, acciones, redaccion }
   } catch (error) {
     console.error("Error en pipeline, usando fallback:", error)
-    return generarFallback(campos)
+    return generarFallback(campos, evidence)
   }
 }

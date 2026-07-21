@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ejecutarPipelineDiagnostico } from "@/lib/diagnostico/pipeline"
 import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
+import { EvidenceItemSchema } from "@/lib/ai/contracts"
+import { buildDiagnosticEvidence } from "@/lib/diagnostico/evidence"
 import { assignSuggestedServices } from "@/lib/servicios/suggester"
 
 export async function POST(request: Request) {
@@ -18,7 +20,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Datos inválidos", detalles: parsed.error.flatten() }, { status: 400 })
     }
 
-    const resultado = await ejecutarPipelineDiagnostico(parsed.data)
+    const fallbackEvidence = buildDiagnosticEvidence(parsed.data)
+    let evidence = fallbackEvidence
+    if (leadId) {
+      const lead = await prisma.lead.findUnique({
+        where: { id: leadId },
+        select: { evidencia_json: true },
+      })
+      const storedEvidence = EvidenceItemSchema.array().safeParse(lead?.evidencia_json)
+      if (storedEvidence.success && storedEvidence.data.length > 0) {
+        evidence = storedEvidence.data
+      }
+    }
+
+    const resultado = await ejecutarPipelineDiagnostico(parsed.data, undefined, evidence)
     const durationMs = Date.now() - (body._startTime || Date.now())
 
     if (leadId) {
