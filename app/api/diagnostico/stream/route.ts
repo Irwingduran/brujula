@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ejecutarPipelineDiagnostico } from "@/lib/diagnostico/pipeline"
 import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
+import { extraerChunksDeDiagnostico } from "@/lib/rag/auto-improve"
 
 function eventStream(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`
@@ -54,6 +55,14 @@ export async function POST(request: Request) {
             } catch (e) {
               console.error("Error guardando diagnóstico en DB:", e)
             }
+
+            extraerChunksDeDiagnostico(resultado, formData.nombre_negocio)
+              .then((stats) =>
+                console.log(
+                  `Auto-mejora: ${stats.insertados} chunks insertados de ${stats.candidatos} candidatos`,
+                ),
+              )
+              .catch((e) => console.warn("Auto-mejora falló (no bloqueante):", e))
           }
 
           controller.enqueue(
