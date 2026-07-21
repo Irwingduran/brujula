@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
 import { ANALYSIS_MESSAGES } from "@/lib/constants"
 import type { WizardStep1Data, WizardStep2Data, WizardStep3Data, AIQuestion, AIQuestionsResponse } from "@/lib/types"
+import type { NormalizedAnswer } from "@/lib/ai/contracts"
 import { SpinnerGap, Sparkle, ArrowLeft, ArrowRight, Check, ChatCircle, Brain, Lightbulb, Eye, TrendUp, Target } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
@@ -17,9 +18,16 @@ interface Step3Props {
 
 type Phase = "analyzing" | "loading-questions" | "questions" | "loading-next" | "reflection" | "done"
 
+interface AdaptiveAnswer {
+  questionId: string
+  question: string
+  answer: string
+  value: string
+}
+
 interface AnsweredRound {
   questions: AIQuestion[]
-  answers: { question: string; answer: string }[]
+  answers: AdaptiveAnswer[]
 }
 
 function getAnswerIcon(index: number) {
@@ -86,7 +94,7 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
         setHasMoreQuestions(result.hasMoreQuestions)
       } else {
         setPhase("done")
-        setTimeout(() => onComplete({ respuestas_ia: [] }), 1500)
+        setTimeout(() => onComplete({ respuestas_ia: [], respuestas_normalizadas: [] }), 1500)
         return
       }
       setPhase("questions")
@@ -130,16 +138,12 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     return Object.keys(e).length === 0
   }
 
-  function getCurrentRoundAnswers(): { question: string; answer: string }[] {
+  function getCurrentRoundAnswers(): AdaptiveAnswer[] {
     return questions.map((q, i) => {
-      let answerLabel: string
-      if (answers[i] === "otro") {
-        answerLabel = otherTexts[i]?.trim() ?? ""
-      } else {
-        const opt = q.options.find((o) => o.value === answers[i])
-        answerLabel = opt?.label ?? answers[i] ?? ""
-      }
-      return { question: q.question, answer: answerLabel }
+      const value = answers[i] === "otro" ? otherTexts[i]?.trim() ?? "" : answers[i] ?? ""
+      const option = q.options.find((candidate) => candidate.value === answers[i])
+      const answer = answers[i] === "otro" ? value : option?.label ?? value
+      return { questionId: q.id, question: q.question, answer, value }
     })
   }
 
@@ -180,10 +184,18 @@ export function Step3Analysis({ step1Data, step2Data, data, onComplete, onBack }
     }
   }
 
-  function finishWithAnswers(allAnswers: { question: string; answer: string }[]) {
+  function finishWithAnswers(allAnswers: AdaptiveAnswer[]) {
     setPhase("done")
-    const labels = allAnswers.map((a) => `${a.question}: ${a.answer}`)
-    setTimeout(() => onComplete({ respuestas_ia: labels }), 1500)
+    const collectedAt = new Date().toISOString()
+    const respuestas_normalizadas: NormalizedAnswer[] = allAnswers.map((answer) => ({
+      questionId: answer.questionId,
+      values: answer.value,
+      source: "adaptive_question",
+      answerMode: "single",
+      collectedAt,
+    }))
+    const respuestas_ia = allAnswers.map((answer) => `${answer.question}: ${answer.answer}`)
+    setTimeout(() => onComplete({ respuestas_ia, respuestas_normalizadas }), 1500)
   }
 
   // ─── Analyzing Phase ───

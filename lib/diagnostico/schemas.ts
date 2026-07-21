@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { WebsiteAnalysisSchema } from "@/lib/ai/contracts"
 
 export const ClasificacionSchema = z.object({
   segmento: z.string(),
@@ -66,12 +67,23 @@ export const FormularioCamposSchema = z.object({
   industria: z.string().min(1),
   industria_otra: z.string().optional(),
   tamano_empresa: z.string().min(1),
-  dolores_principales: z.array(z.string()),
+  dolores_principales: z.array(z.string().min(1)).min(1),
+  dolor_otro: z.string().optional(),
   herramientas_actuales: z.array(z.string()),
+  herramienta_otra: z.string().optional(),
   presupuesto: z.string().min(1),
   urgencia: z.string().min(1),
   respuestas_branch: z.record(z.string()).optional(),
   respuestas_ia: z.array(z.string()).optional(),
+  respuestas_normalizadas: z.array(z.object({
+    questionId: z.string().min(1),
+    values: z.union([z.string(), z.array(z.string()).min(1), z.number(), z.boolean()]),
+    source: z.enum(["questionnaire", "adaptive_question"]),
+    answerMode: z.enum(["single", "multiple", "number", "text", "boolean"]),
+    collectedAt: z.string().datetime(),
+  })).optional(),
+  url_sitio: z.string().url().optional(),
+  website_analysis: WebsiteAnalysisSchema.optional(),
 })
 
 export type FormularioCampos = z.infer<typeof FormularioCamposSchema>

@@ -49,6 +49,9 @@ export type CurrentTool =
 // Wizard Data (form state)
 // ============================
 
+import type { NormalizedAnswer, WebsiteAnalysis } from "@/lib/ai/contracts"
+export type { NormalizedAnswer, WebsiteAnalysis } from "@/lib/ai/contracts"
+
 export interface WizardStep1Data {
   industria: string
   industria_otra?: string
@@ -69,22 +72,9 @@ export interface WizardStep2Data {
   email: string
   telefono: string
 }
-
-export interface WebsiteAnalysis {
-  url: string
-  titulo?: string
-  descripcion?: string
-  resumen_contenido: string   // lo que encontró la IA al analizar el sitio
-  tiene_blog: boolean
-  tiene_ecommerce: boolean
-  tiene_formulario_contacto: boolean
-  redes_sociales: string[]
-  keywords_detectadas: string[]
-  error?: string              // si el scraping falló
-}
-
 export interface WizardStep3Data {
   respuestas_ia: string[]
+  respuestas_normalizadas: NormalizedAnswer[]
 }
 
 export interface AIQuestionOption {
@@ -93,6 +83,7 @@ export interface AIQuestionOption {
 }
 
 export interface AIQuestion {
+  id: string
   question: string
   options: AIQuestionOption[]
 }
@@ -106,7 +97,6 @@ export interface WizardData {
   step1: WizardStep1Data | null
   step2: WizardStep2Data | null
   step3: WizardStep3Data | null
-  websiteAnalysis?: WebsiteAnalysis  
 }
 
 // ============================

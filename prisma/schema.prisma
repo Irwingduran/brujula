@@ -29,6 +29,12 @@ model Lead {
   descripcion_problema  String    @default("")
   url_sitio             String    @default("")
   website_analisis      Json?
+  industria_otra        String?
+  dolor_otro            String?
+  herramienta_otra      String?
+  evidencia_json        Json?
+  formulario_version    String?
+  contexto_externo_json Json?
 
   // Calificación
   presupuesto           String

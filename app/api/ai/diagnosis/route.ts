@@ -34,16 +34,17 @@ export async function POST(request: Request) {
     apiKey: process.env.OPENAI_API_KEY,
   })
 
-  const websiteContext = wizardData.websiteAnalysis && !wizardData.websiteAnalysis.error
+  const website = step1.website_analysis
+  const websiteContext = website && !website.error
     ? `
-ANÁLISIS DE SU SITIO WEB (${wizardData.websiteAnalysis.url}):
-- Descripción detectada: ${wizardData.websiteAnalysis.descripcion}
-- Contenido: ${wizardData.websiteAnalysis.resumen_contenido}
-- Tiene blog: ${wizardData.websiteAnalysis.tiene_blog ? "Sí" : "No"}
-- Tiene tienda online: ${wizardData.websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
-- Tiene formulario de contacto: ${wizardData.websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
-- Redes sociales detectadas: ${wizardData.websiteAnalysis.redes_sociales.join(", ") || "Ninguna"}
-- Oportunidades detectadas en el sitio: ${wizardData.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}`
+ANÁLISIS DE SU SITIO WEB (${website.url}):
+- Descripción detectada: ${website.descripcion}
+- Contenido: ${website.resumen_contenido}
+- Tiene blog: ${website.tiene_blog ? "Sí" : "No"}
+- Tiene tienda online: ${website.tiene_ecommerce ? "Sí" : "No"}
+- Tiene formulario de contacto: ${website.tiene_formulario_contacto ? "Sí" : "No"}
+- Redes sociales detectadas: ${website.redes_sociales?.join(", ") || "Ninguna"}
+- Oportunidades detectadas en el sitio: ${website.oportunidades_mejora?.join(", ") || "Ninguna"}`
       : ""
 
   const benchmarksText = benchmarks.length

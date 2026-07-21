@@ -4,7 +4,9 @@ import { calculateScore } from "@/lib/scoring"
 import { generateDiagnosis } from "@/lib/diagnosis"
 import { sendDiagnosticoEmail, sendHotLeadNotification } from "@/lib/email"
 import { assignSuggestedServices } from "@/lib/servicios/suggester"
-import type { WizardData, DiagnosisResult, ScoreBreakdown } from "@/lib/types" 
+import { WizardSubmissionSchema } from "@/lib/ai/contracts"
+import { buildExternalContextSnapshot, buildWizardEvidence } from "@/lib/formulario/evidence"
+import type { WizardData, ScoreBreakdown } from "@/lib/types"
  
 // GET /api/leads 
 export async function GET() {
@@ -23,38 +25,49 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const wizardData: WizardData = body.wizardData
+    const parsedSubmission = WizardSubmissionSchema.safeParse(body.wizardData)
 
-    if (!wizardData?.step1 || !wizardData?.step2) {
-      return NextResponse.json(
-        { error: "Datos del wizard incompletos" },
-        { status: 400 }
-      )
+    if (!parsedSubmission.success) {
+      return NextResponse.json({ error: "Datos del wizard inválidos" }, { status: 400 })
     }
 
+    const { step1, step2, step3 } = parsedSubmission.data
+    const wizardData: WizardData = {
+      step1: step1 as WizardData["step1"],
+      step2: step2 as WizardData["step2"],
+      step3: step3 ?? null,
+    }
+    const evidence = buildWizardEvidence(wizardData)
+    const externalContext = buildExternalContextSnapshot(wizardData)
     const score = calculateScore(wizardData)
     const diagnosis = generateDiagnosis(wizardData)
 
     const lead = await prisma.lead.create({
       data: {
-        nombre: wizardData.step2.nombre,
-        email: wizardData.step2.email,
-        telefono: wizardData.step2.telefono,
-        industria: wizardData.step1.industria,
-        tamano_empresa: wizardData.step1.tamano_empresa,
-        dolores_principales: wizardData.step1.dolores_principales,
-        herramientas_actuales: wizardData.step1.herramientas_actuales,
-        descripcion_problema: Object.values(wizardData.step2.respuestas_branch).join(" | "),
-        presupuesto: wizardData.step2.presupuesto,
-        urgencia: wizardData.step2.urgencia,
-        respuestas_branch: wizardData.step2.respuestas_branch ?? {},
-        respuestas_ia: wizardData.step3?.respuestas_ia ?? [],
+        nombre: step2.nombre,
+        email: step2.email,
+        telefono: step2.telefono,
+        industria: step1.industria,
+        tamano_empresa: step1.tamano_empresa,
+        dolores_principales: step1.dolores_principales,
+        herramientas_actuales: step1.herramientas_actuales,
+        descripcion_problema: Object.values(step2.respuestas_branch).join(" | "),
+        presupuesto: step2.presupuesto,
+        urgencia: step2.urgencia,
+        respuestas_branch: step2.respuestas_branch,
+        respuestas_ia: step3?.respuestas_ia ?? [],
         score: score as object,
         diagnostico: diagnosis as object,
         segmento: score.segmento,
         estado_pipeline: "wizard_completado",
-        url_sitio: wizardData.step1?.url_sitio ?? "",
-        website_analisis: wizardData.websiteAnalysis as object ?? {},
+        url_sitio: step1.url_sitio ?? "",
+        website_analisis: (step1.website_analysis ?? {}) as object,
+        industria_otra: step1.industria_otra,
+        dolor_otro: step1.dolor_otro,
+        herramienta_otra: step1.herramienta_otra,
+        evidencia_json: evidence as object,
+        formulario_version: "v2",
+        contexto_externo_json: externalContext as object,
       },
     })
 

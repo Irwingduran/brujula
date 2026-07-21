@@ -2,58 +2,37 @@ import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { getPromptGuidance } from "@/lib/diagnostico/knowledge"
 import { mapIndustria } from "@/lib/diagnostico/classifier"
-
-// Tipado opcional para websiteAnalysis (recomendado para TypeScript estricto)
-interface WebsiteAnalysis {
-  url: string
-  descripcion: string
-  resumen_contenido: string
-  tiene_blog: boolean
-  tiene_ecommerce: boolean
-  tiene_formulario_contacto: boolean
-  redes_sociales: string[]
-  oportunidades_mejora?: string[]
-  error?: boolean
-}
-
-interface Step1 {
-  industria: string
-  industria_otra?: string
-  tamano_empresa: string
-  dolores_principales: string[]
-  dolor_otro?: string
-  herramientas_actuales: string[]
-  herramienta_otra?: string
-  websiteAnalysis?: WebsiteAnalysis
-}
-
-interface Step2 {
-  presupuesto: string
-  urgencia: string
-  respuestas_branch: Record<string, string>
-}
+import {
+  AdaptiveQuestionsResponseSchema,
+  WizardQuestionRequestSchema,
+} from "@/lib/ai/contracts"
 
 export async function POST(request: Request) {
-  let round = 1
+  let round: 1 | 2 = 1
+  let input: ReturnType<typeof WizardQuestionRequestSchema.parse>
+
   try {
     const body = await request.json()
-    round = body.round ?? 1
-    const { step1, step2, previousAnswers = [] } = body as {
-      step1: Step1
-      step2: Step2
-      previousAnswers?: Array<{ question: string; answer: string }>
+    const parsedInput = WizardQuestionRequestSchema.safeParse(body)
+
+    if (!parsedInput.success) {
+      return NextResponse.json({ error: "Datos del wizard inválidos" }, { status: 400 })
     }
 
-    if (!step1 || !step2) {
-      return NextResponse.json({ error: "Datos incompletos" }, { status: 400 })
-    }
+    input = parsedInput.data
+    round = input.round
+  } catch {
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 })
+  }
 
+  try {
+    const { step1, step2, previousAnswers } = input
     const maxQuestions = round === 1 ? 3 : 2
 
     // Si no hay API key, retornar preguntas de fallback
     if (!process.env.OPENAI_API_KEY) {
       console.warn("OPENAI_API_KEY no configurada, usando preguntas de fallback")
-      return NextResponse.json(getFallbackQuestions(round))
+      return NextResponse.json(buildQuestionsResponse(getFallbackQuestions(round), round))
     }
 
     const client = new OpenAI({
@@ -124,15 +103,15 @@ export async function POST(request: Request) {
       : "  (sin respuestas específicas)"
 
     // === CONTEXTO DE ANÁLISIS DE SITIO WEB ===
-    const websiteContext = step1.websiteAnalysis && !step1.websiteAnalysis.error
-      ? `\n\n🌐 ANÁLISIS DE SU SITIO WEB (${step1.websiteAnalysis.url}):
-- Descripción: ${step1.websiteAnalysis.descripcion}
-- Contenido principal: ${step1.websiteAnalysis.resumen_contenido}
-- Tiene blog: ${step1.websiteAnalysis.tiene_blog ? "Sí" : "No"}
-- Tiene tienda online: ${step1.websiteAnalysis.tiene_ecommerce ? "Sí" : "No"}
-- Tiene formulario de contacto: ${step1.websiteAnalysis.tiene_formulario_contacto ? "Sí" : "No"}
-- Redes sociales detectadas: ${step1.websiteAnalysis.redes_sociales.join(", ") || "Ninguna"}
-- Oportunidades detectadas: ${step1.websiteAnalysis.oportunidades_mejora?.join(", ") || "Ninguna"}
+    const websiteContext = step1.website_analysis && !step1.website_analysis.error
+      ? `\n\n🌐 ANÁLISIS DE SU SITIO WEB (${step1.website_analysis.url}):
+- Descripción: ${step1.website_analysis.descripcion}
+- Contenido principal: ${step1.website_analysis.resumen_contenido}
+- Tiene blog: ${step1.website_analysis.tiene_blog ? "Sí" : "No"}
+- Tiene tienda online: ${step1.website_analysis.tiene_ecommerce ? "Sí" : "No"}
+- Tiene formulario de contacto: ${step1.website_analysis.tiene_formulario_contacto ? "Sí" : "No"}
+- Redes sociales detectadas: ${step1.website_analysis.redes_sociales?.join(", ") || "Ninguna"}
+- Oportunidades detectadas: ${step1.website_analysis.oportunidades_mejora?.join(", ") || "Ninguna"}
 
 🎯 INSTRUCCIONES PARA USAR ESTE CONTEXTO:
 - NO preguntes sobre elementos que YA existen en su sitio (ej: si ya tiene blog, no preguntes "¿te interesa tener blog?")
@@ -181,7 +160,7 @@ INSTRUCCIONES CRÍTICAS:
   Ejemplo: si dijo "facturación" como proceso más lento, pregunta sobre volumen de facturas, errores frecuentes, tiempo por factura
   Ejemplo: si dijo "intuición" para toma de decisiones, pregunta sobre qué decisiones le gustaría basar en datos
 - Usa "${step1.herramientas_actuales.join(", ")}" para preguntar por limitaciones específicas de ESAS herramientas en su contexto.
-${step1.websiteAnalysis && !step1.websiteAnalysis.error ? `- Revisaste su sitio web: usa esa información para preguntar sobre brechas digitales específicas.
+${step1.website_analysis && !step1.website_analysis.error ? `- Revisaste su sitio web: usa esa información para preguntar sobre brechas digitales específicas.
   Ejemplo: si no tiene formulario de contacto → "¿Cómo te contactan los clientes que llegan por tu sitio?"
   Ejemplo: si tiene blog pero parece inactivo → "¿Con qué frecuencia publicas contenido en tu blog?"
   Ejemplo: si tiene e-commerce → "¿Cómo gestionas la logística de los pedidos que llegan por tu web?"` : ''}
@@ -197,7 +176,7 @@ Cada pregunta debe abordar un ángulo DIFERENTE y ESPECÍFICO para su caso.`
 Genera ${maxQuestions} preguntas que:
 1. Tomen UNA respuesta de la ronda anterior y profundicen en ella (ej: si dijo "pierdo clientes por mal seguimiento", preguntar cuántos clientes pierde, qué pasa después de la venta, etc.)
 2. Ayuden a dimensionar la solución ideal: alcance, prioridades, expectativas de resultado medibles
-3. ${step1.websiteAnalysis && !step1.websiteAnalysis.error ? 'Incorporen observaciones del sitio web para preguntar sobre integración, conversión o mejoras digitales específicas — conectando lo que viste en la web con lo que dijo en ronda 1' : 'Se centren en métricas de éxito y expectativas de implementación'}
+3. ${step1.website_analysis && !step1.website_analysis.error ? 'Incorporen observaciones del sitio web para preguntar sobre integración, conversión o mejoras digitales específicas — conectando lo que viste en la web con lo que dijo en ronda 1' : 'Se centren en métricas de éxito y expectativas de implementación'}
 4. NO repitan temas ya cubiertos — solo profundicen
 
 IMPORTANTE: Las preguntas de ronda 2 deben ser IMPOSIBLES de generar sin conocer las respuestas de ronda 1. Si se ven genéricas, están mal.`}
@@ -240,27 +219,35 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto, sin texto adici
     if (!text) throw new Error("Respuesta vacía")
 
     const parsed = JSON.parse(text)
-
-    // Validate structure
-    if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-      throw new Error("Estructura de respuesta inválida")
-    }
-
-    // Ensure every question has options with value/label
-    for (const q of parsed.questions) {
-      if (!q.question || !Array.isArray(q.options) || q.options.length < 2) {
-        throw new Error("Pregunta mal formada")
-      }
-    }
-
-    return NextResponse.json(parsed)
+    return NextResponse.json(buildQuestionsResponse(parsed, round))
   } catch (error) {
     console.error("Error generando preguntas:", error)
-    return NextResponse.json(getFallbackQuestions(round))
+    return NextResponse.json(buildQuestionsResponse(getFallbackQuestions(round), round))
   }
 }
 
-function getFallbackQuestions(round: number) {
+function buildQuestionsResponse(response: unknown, round: 1 | 2) {
+  const candidate = response as {
+    questions?: unknown[]
+    hasMoreQuestions?: unknown
+  }
+  const withStableIds = {
+    questions: candidate.questions?.map((question, index) => ({
+      ...(typeof question === "object" && question !== null ? question : {}),
+      id: `adaptive_r${round}_q${index + 1}`,
+    })),
+    hasMoreQuestions: candidate.hasMoreQuestions,
+  }
+  const parsed = AdaptiveQuestionsResponseSchema.safeParse(withStableIds)
+
+  if (!parsed.success) {
+    throw new Error("Respuesta de preguntas inválida")
+  }
+
+  return parsed.data
+}
+
+function getFallbackQuestions(round: 1 | 2) {
   if (round === 1) {
     return {
       questions: [

@@ -81,6 +81,9 @@ async function llamarLLMSintomas(
     .join("\n") || "- Sin respuestas específicas adicionales"
   const respuestasProfundas = campos.respuestas_ia?.map((respuesta) => `- ${respuesta}`).join("\n")
     || "- Sin respuestas profundas adicionales"
+  const analisisWeb = campos.website_analysis && !campos.website_analysis.error
+    ? `SITIO WEB OBSERVADO (${campos.url_sitio ?? campos.website_analysis.url ?? "URL no disponible"}):\n- Descripción: ${campos.website_analysis.descripcion ?? "No disponible"}\n- Contenido: ${campos.website_analysis.resumen_contenido ?? "No disponible"}\n- Blog: ${campos.website_analysis.tiene_blog ? "Sí" : "No confirmado"}\n- E-commerce: ${campos.website_analysis.tiene_ecommerce ? "Sí" : "No confirmado"}\n- Formulario de contacto: ${campos.website_analysis.tiene_formulario_contacto ? "Sí" : "No confirmado"}\n- Oportunidades observadas: ${campos.website_analysis.oportunidades_mejora?.join(", ") || "No disponible"}`
+    : "SITIO WEB: sin observaciones verificables"
 
   const systemPrompt = `Eres un analista de transformación digital para PYMEs mexicanas.
 Recibirás las respuestas de un cuestionario de diagnóstico y una lista de síntomas posibles.
@@ -99,6 +102,7 @@ RESPUESTAS ESPECÍFICAS DEL NEGOCIO:
 ${respuestasBranch}
 RESPUESTAS PROFUNDAS DEL CUESTIONARIO:
 ${respuestasProfundas}
+${analisisWeb}
 SEGMENTO DETECTADO: ${clasificacion.segmento}
 MADUREZ DIGITAL: ${clasificacion.madurezDigital}/5
 

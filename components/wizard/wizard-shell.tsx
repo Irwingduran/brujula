@@ -17,7 +17,6 @@ import type {
   WizardStep3Data,
   DiagnosisResult,
   ScoreBreakdown,
-  WebsiteAnalysis,
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -57,14 +56,13 @@ export function WizardShell() {
   const [v2Failed, setV2Failed] = useState(false)
   const [v2Progress, setV2Progress] = useState<{ paso: number; total: number; descripcion: string } | null>(null)
 
-  const handleStep1Complete = useCallback((data: WizardStep1Data, analysis?: WebsiteAnalysis) => {
+  const handleStep1Complete = useCallback((data: WizardStep1Data) => {
     setWizardData((prev) => ({
-    ...prev,
-    step1: data,
-    websiteAnalysis: analysis ?? prev.websiteAnalysis,
-  }))
-  setCurrentStep(1)
-}, [])
+      ...prev,
+      step1: data,
+    }))
+    setCurrentStep(1)
+  }, [])
 
   const handleStep2Complete = useCallback((data: WizardStep2Data) => {
     setWizardData((prev) => ({ ...prev, step2: data }))
@@ -100,11 +98,16 @@ export function WizardShell() {
           industria_otra: updatedData.step1!.industria_otra,
           tamano_empresa: updatedData.step1!.tamano_empresa,
           dolores_principales: updatedData.step1!.dolores_principales,
+          dolor_otro: updatedData.step1!.dolor_otro,
           herramientas_actuales: updatedData.step1!.herramientas_actuales,
+          herramienta_otra: updatedData.step1!.herramienta_otra,
           presupuesto: updatedData.step2!.presupuesto,
           urgencia: updatedData.step2!.urgencia,
           respuestas_branch: updatedData.step2!.respuestas_branch,
           respuestas_ia: updatedData.step3?.respuestas_ia,
+          respuestas_normalizadas: updatedData.step3?.respuestas_normalizadas,
+          url_sitio: updatedData.step1!.url_sitio,
+          website_analysis: updatedData.step1!.website_analysis,
         }
 
         try {
