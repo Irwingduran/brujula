@@ -1,35 +1,9 @@
 import { PrismaClient } from "@prisma/client"
-import { hash } from "bcryptjs"
 import { SERVICES_CATALOG } from "../lib/servicios/catalog"
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("Seeding admin user...")
-
-  const adminEmail = process.env.SEED_ADMIN_EMAIL
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD
-
-  if (!adminEmail || !adminPassword) {
-    console.error("Define SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD en .env para ejecutar el seed.")
-    process.exit(1)
-  }
-  const password_hash = await hash(adminPassword, 12)
-
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: { password_hash },
-    create: {
-      name: "Admin",
-      email: adminEmail,
-      password_hash,
-      role: "superadmin",
-      active: true,
-    },
-  })
-
-  console.log(`  ✓ ${adminEmail} (${adminPassword})`)
-
   console.log("Seeding services...")
 
   for (const svc of SERVICES_CATALOG) {

@@ -1,5 +1,7 @@
-import { isIP } from "node:net"
+import { request as httpRequest, type IncomingMessage } from "node:http"
+import { request as httpsRequest } from "node:https"
 import { lookup } from "node:dns/promises"
+import { isIP } from "node:net"
 import OpenAI from "openai"
 import { NextResponse } from "next/server"
 import { WebsiteAnalysisSchema } from "@/lib/ai/contracts"
@@ -13,6 +15,17 @@ const OPENAI_TIMEOUT_MS = 12_000
 
 class UrlSafetyError extends Error {}
 
+interface ResolvedPublicHost {
+  hostname: string
+  address: string
+  family: 4 | 6
+}
+
+interface ValidatedPublicUrl {
+  url: URL
+  host: ResolvedPublicHost
+}
+
 export async function POST(request: Request) {
   let normalizedUrl = ""
 
@@ -23,8 +36,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "URL requerida" }, { status: 400 })
     }
 
-    normalizedUrl = await validatePublicUrl(rawUrl)
-    const htmlContent = await fetchWebsiteContent(normalizedUrl)
+    const validatedUrl = await validatePublicUrl(rawUrl)
+    normalizedUrl = validatedUrl.url.toString()
+    const htmlContent = await fetchWebsiteContent(validatedUrl)
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(getFallbackAnalysis(normalizedUrl, "Análisis no disponible"))
@@ -43,7 +57,17 @@ export async function POST(request: Request) {
         },
         {
           role: "user",
-          content: `Analiza este contenido de sitio web y responde en JSON:\n\nURL: ${normalizedUrl}\nCONTENIDO: ${htmlContent}\n\nResponde con este JSON exacto:\n{\n  "titulo": "título o nombre del negocio detectado",\n  "descripcion": "1 oración describiendo el negocio",\n  "resumen_contenido": "párrafo de 2-3 oraciones sobre qué ofrece, a quién y cómo se presenta online",\n  "tiene_blog": true/false,\n  "tiene_ecommerce": true/false,\n  "tiene_formulario_contacto": true/false,\n  "redes_sociales": ["lista de redes detectadas en el contenido"],\n  "keywords_detectadas": ["5-8 palabras clave del negocio"],\n  "oportunidades_mejora": ["2-3 oportunidades de mejora digital detectadas del sitio"]\n}`,
+          content: `Analiza este contenido de sitio web y responde en JSON:\n\nURL: ${normalizedUrl}\nCONTENIDO: ${htmlContent}\n\nResponde con este JSON exacto:\n{
+  "titulo": "título o nombre del negocio detectado",
+  "descripcion": "1 oración describiendo el negocio",
+  "resumen_contenido": "párrafo de 2-3 oraciones sobre qué ofrece, a quién y cómo se presenta online",
+  "tiene_blog": true/false,
+  "tiene_ecommerce": true/false,
+  "tiene_formulario_contacto": true/false,
+  "redes_sociales": ["lista de redes detectadas en el contenido"],
+  "keywords_detectadas": ["5-8 palabras clave del negocio"],
+  "oportunidades_mejora": ["2-3 oportunidades de mejora digital detectadas del sitio"]
+}`,
         },
       ],
     }, { signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS) })
@@ -65,7 +89,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function validatePublicUrl(rawUrl: string): Promise<string> {
+async function validatePublicUrl(rawUrl: string): Promise<ValidatedPublicUrl> {
   const candidate = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`
   let parsed: URL
 
@@ -81,21 +105,25 @@ async function validatePublicUrl(rawUrl: string): Promise<string> {
   if (parsed.username || parsed.password || parsed.port) {
     throw new UrlSafetyError("La URL no puede incluir credenciales ni puertos personalizados")
   }
-  if (parsed.hostname.endsWith(".local") || parsed.hostname === "localhost") {
+
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, "")
+  if (hostname.endsWith(".local") || hostname === "localhost") {
     throw new UrlSafetyError("La URL debe apuntar a un sitio público")
   }
 
-  await assertPublicHost(parsed.hostname)
-  return parsed.toString()
+  return { url: parsed, host: await resolvePublicHost(hostname) }
 }
 
-async function assertPublicHost(hostname: string): Promise<void> {
-  if (isIP(hostname)) {
-    if (isPrivateAddress(hostname)) throw new UrlSafetyError("La URL debe apuntar a una dirección pública")
-    return
+async function resolvePublicHost(hostname: string): Promise<ResolvedPublicHost> {
+  const literalFamily = isIP(hostname)
+  if (literalFamily) {
+    if (isPrivateAddress(hostname)) {
+      throw new UrlSafetyError("La URL debe apuntar a una dirección pública")
+    }
+    return { hostname, address: hostname, family: literalFamily as 4 | 6 }
   }
 
-  let addresses: { address: string }[]
+  let addresses: { address: string; family: number }[]
   try {
     addresses = await lookup(hostname, { all: true, verbatim: true })
   } catch {
@@ -105,6 +133,13 @@ async function assertPublicHost(hostname: string): Promise<void> {
   if (!addresses.length || addresses.some(({ address }) => isPrivateAddress(address))) {
     throw new UrlSafetyError("La URL debe apuntar a una dirección pública")
   }
+
+  const selected = addresses[0]
+  if (selected.family !== 4 && selected.family !== 6) {
+    throw new UrlSafetyError("El dominio no resolvió a una dirección IP válida")
+  }
+
+  return { hostname, address: selected.address, family: selected.family }
 }
 
 function isPrivateAddress(address: string): boolean {
@@ -125,31 +160,30 @@ function isPrivateAddress(address: string): boolean {
     || first >= 224
 }
 
-async function fetchWebsiteContent(initialUrl: string): Promise<string> {
-  let currentUrl = initialUrl
+async function fetchWebsiteContent(initialUrl: ValidatedPublicUrl): Promise<string> {
+  let current = initialUrl
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
     try {
-      const response = await fetch(currentUrl, {
-        redirect: "manual",
-        signal: controller.signal,
-        headers: { "User-Agent": "Brujula-Bot/1.0 (+website-analysis)" },
-      })
+      const response = await requestPinnedUrl(current, controller.signal)
+      const status = response.statusCode ?? 0
 
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("location")
-        if (!location) throw new UrlSafetyError("El sitio devolvió una redirección inválida")
+      if (status >= 300 && status < 400) {
+        const location = response.headers.location
+        response.resume()
+        if (!location || Array.isArray(location)) throw new UrlSafetyError("El sitio devolvió una redirección inválida")
         if (redirectCount === MAX_REDIRECTS) throw new UrlSafetyError("El sitio tiene demasiadas redirecciones")
-        currentUrl = await validatePublicUrl(new URL(location, currentUrl).toString())
+        current = await validatePublicUrl(new URL(location, current.url).toString())
         continue
       }
 
-      if (!response.ok) throw new Error(`El sitio respondió con estado ${response.status}`)
-      const contentType = response.headers.get("content-type")?.toLowerCase() ?? ""
+      if (status < 200 || status >= 300) throw new Error(`El sitio respondió con estado ${status}`)
+      const contentType = response.headers["content-type"]?.toLowerCase() ?? ""
       if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
+        response.resume()
         throw new UrlSafetyError("La URL debe devolver una página HTML")
       }
 
@@ -162,30 +196,43 @@ async function fetchWebsiteContent(initialUrl: string): Promise<string> {
   throw new UrlSafetyError("No se pudo seguir la redirección del sitio")
 }
 
-async function readLimitedBody(response: Response): Promise<string> {
-  const reader = response.body?.getReader()
-  if (!reader) return ""
+function requestPinnedUrl(target: ValidatedPublicUrl, signal: AbortSignal): Promise<IncomingMessage> {
+  const requestUrl = target.url
+  const sendRequest = requestUrl.protocol === "https:" ? httpsRequest : httpRequest
 
-  const chunks: Uint8Array[] = []
+  return new Promise((resolve, reject) => {
+    const request = sendRequest(requestUrl, {
+      headers: { "User-Agent": "Brujula-Bot/1.0 (+website-analysis)" },
+      lookup: (hostname, _options, callback) => {
+        if (hostname !== target.host.hostname) {
+          callback(new Error("El cliente intentó resolver un hostname no validado"), "", 0)
+          return
+        }
+        callback(null, target.host.address, target.host.family)
+      },
+      signal,
+    }, resolve)
+
+    request.once("error", reject)
+    request.end()
+  })
+}
+
+async function readLimitedBody(response: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = []
   let size = 0
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    size += value.byteLength
+
+  for await (const chunk of response) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.byteLength
     if (size > MAX_RESPONSE_BYTES) {
-      await reader.cancel()
+      response.destroy()
       throw new UrlSafetyError("La página excede el tamaño permitido para análisis")
     }
-    chunks.push(value)
+    chunks.push(buffer)
   }
 
-  const bytes = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return new TextDecoder().decode(bytes)
+  return Buffer.concat(chunks).toString("utf-8")
 }
 
 function cleanHtml(html: string): string {
