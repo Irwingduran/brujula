@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         try {
           const startTime = Date.now()
 
-          sendEvent(1, 6, "Preparando tu diagnóstico")
+          sendEvent(1, 7, "Preparando tu diagnóstico")
           const resultado = await ejecutarPipelineDiagnostico(parsed.data, sendEvent, evidence)
 
           const durationMs = Date.now() - startTime

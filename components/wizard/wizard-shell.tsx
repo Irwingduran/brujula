@@ -146,6 +146,9 @@ export function WizardShell() {
                       evidence: event.evidence ?? [],
                       sintomas: event.sintomas,
                       findings: event.findings ?? [],
+                      capabilities: event.capabilities ?? [],
+                      recommendations: event.recommendations ?? [],
+                      metrics: event.metrics ?? [],
                       acciones: event.acciones,
                       redaccion: event.redaccion,
                     })

@@ -8,6 +8,7 @@ import { SYMPTOMS_CATALOG } from "./symptoms-catalog"
 import { ACTIONS_CATALOG } from "./actions-catalog"
 import { getKnowledgePack, getPromptGuidance } from "./knowledge"
 import { buildDiagnosticEvidence, formatEvidenceValue, getPublicEvidenceLabel } from "./evidence"
+import { deriveDiagnosticRoute } from "./capabilities-catalog"
 
 const MODEL = process.env.DIAGNOSTICO_MODEL || "gpt-4o"
 const MAX_RETRIES = Number(process.env.DIAGNOSTICO_MAX_RETRIES) || 2
@@ -388,42 +389,31 @@ function generarFallback(campos: FormularioCampos, evidence: EvidenceItem[]): Di
   const knowledge = getKnowledgePack(clasificacion.industryCode)
   const fb = knowledge?.fallbackDiagnosis
   const fallbackEvidence = evidence.length ? evidence : buildDiagnosticEvidence(campos)
+  const fallbackSintomas: SintomaResult[] = [
+    {
+      sintomaId: "procesos_manuales",
+      score: 3,
+      evidencia: "Tus herramientas actuales indican que varios procesos todavía requieren trabajo manual.",
+      evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "herramientas_actuales"),
+      confidence: "media",
+    },
+    {
+      sintomaId: "sin_metricas",
+      score: 2,
+      evidencia: "Aún falta medir de forma consistente los resultados de la operación.",
+      evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "dolores_principales"),
+      confidence: "baja",
+    },
+  ]
+  const fallbackFindings = generarHallazgosFallback(fallbackSintomas)
+  const fallbackRoute = deriveDiagnosticRoute(fallbackFindings, clasificacion)
 
   const fallback: DiagnosticoResult = {
     clasificacion,
     evidence: buildPublicEvidence(fallbackEvidence),
-    sintomas: [
-      {
-        sintomaId: "procesos_manuales",
-        score: 3,
-        evidencia: "Tus herramientas actuales indican que varios procesos todavía requieren trabajo manual.",
-        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "herramientas_actuales"),
-        confidence: "media",
-      },
-      {
-        sintomaId: "sin_metricas",
-        score: 2,
-        evidencia: "Aún falta medir de forma consistente los resultados de la operación.",
-        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "dolores_principales"),
-        confidence: "baja",
-      },
-    ],
-    findings: generarHallazgosFallback([
-      {
-        sintomaId: "procesos_manuales",
-        score: 3,
-        evidencia: "Tus herramientas actuales indican que varios procesos todavía requieren trabajo manual.",
-        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "herramientas_actuales"),
-        confidence: "media",
-      },
-      {
-        sintomaId: "sin_metricas",
-        score: 2,
-        evidencia: "Aún falta medir de forma consistente los resultados de la operación.",
-        evidenceIds: getFallbackEvidenceIds(fallbackEvidence, "dolores_principales"),
-        confidence: "baja",
-      },
-    ]),
+    sintomas: fallbackSintomas,
+    findings: fallbackFindings,
+    ...fallbackRoute,
     acciones: [
       { accionId: "implementar_whatsapp_business", prioridad: 1, justificacion: "Paso inicial de bajo costo para organizar la comunicación" },
       { accionId: "capacitacion_equipo_digital", prioridad: 2, justificacion: "Preparar al equipo para la transformación digital" },
@@ -473,31 +463,34 @@ export async function ejecutarPipelineDiagnostico(
   const startTime = Date.now()
 
   try {
-    onProgress?.(1, 6, "Clasificando tu negocio")
+    onProgress?.(1, 7, "Clasificando tu negocio")
     const clasificacion = clasificarNegocio(campos)
 
-    onProgress?.(2, 6, "Analizando síntomas digitales")
+    onProgress?.(2, 7, "Analizando síntomas digitales")
     const sintomas = await llamarLLMSintomas(campos, clasificacion, evidence)
 
-    onProgress?.(3, 6, "Identificando hallazgos prioritarios")
+    onProgress?.(3, 7, "Identificando hallazgos prioritarios")
     const findings = await llamarLLMHallazgos(sintomas)
 
-    onProgress?.(4, 6, "Seleccionando acciones recomendadas")
+    onProgress?.(4, 7, "Definiendo tu ruta de mejora")
+    const route = deriveDiagnosticRoute(findings, clasificacion)
+
+    onProgress?.(5, 7, "Seleccionando acciones recomendadas")
     const acciones = await llamarLLMAcciones(campos, clasificacion, sintomas)
 
-    onProgress?.(5, 6, "Validando coherencia del diagnóstico")
+    onProgress?.(6, 7, "Validando coherencia del diagnóstico")
     const coherencia = validarCoherencia(clasificacion, sintomas, acciones)
     if (!coherencia.valido) {
       throw new Error(`Acciones incoherentes después de validación: ${coherencia.errores.join("; ")}`)
     }
 
-    onProgress?.(6, 6, "Redactando tu diagnóstico personalizado")
+    onProgress?.(7, 7, "Redactando tu diagnóstico personalizado")
     const redaccion = await llamarLLMRedaccion(clasificacion, sintomas, acciones)
 
     const duration = Date.now() - startTime
     console.log(`Pipeline completado en ${duration}ms`)
 
-    return { clasificacion, evidence: buildPublicEvidence(evidence), sintomas, findings, acciones, redaccion }
+    return { clasificacion, evidence: buildPublicEvidence(evidence), sintomas, findings, ...route, acciones, redaccion }
   } catch (error) {
     console.error("Error en pipeline, usando fallback:", error)
     return generarFallback(campos, evidence)

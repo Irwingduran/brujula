@@ -53,7 +53,7 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
     )
   }
 
-  const { redaccion, clasificacion, sintomas, findings } = diagnostico
+  const { redaccion, clasificacion, sintomas, findings, capabilities, recommendations, metrics } = diagnostico
 
   return (
     <section className="space-y-5">
@@ -187,6 +187,41 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
                 </article>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {capabilities.length > 0 && (
+        <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-primary">
+          <div className="p-6 sm:p-8 space-y-5">
+            <div className="flex items-center gap-2">
+              <Compass className="h-5 w-5 text-primary" />
+              <span className="text-xs font-bold text-primary uppercase tracking-wider">Lo que conviene desarrollar ahora</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {capabilities.map((capability) => (
+                <div key={capability.id} className="rounded-xl border border-primary/15 bg-primary/5 p-4">
+                  <div className="flex items-start justify-between gap-2"><h3 className="text-sm font-bold text-foreground">{capability.name}</h3><span className="text-[10px] font-medium text-primary capitalize">{capability.level}</span></div>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{capability.description}</p>
+                </div>
+              ))}
+            </div>
+            {recommendations.length > 0 && (
+              <div className="space-y-3 border-t border-primary/15 pt-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ruta recomendada</p>
+                {recommendations.map((recommendation) => {
+                  const metric = metrics.find((item) => recommendation.metricIds.includes(item.id))
+                  return <article key={recommendation.id} className="rounded-xl border border-border bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold text-foreground">{recommendation.title}</h3><span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{recommendation.horizon.replaceAll("_", " ")}</span></div>
+                    <p className="mt-2 text-xs text-muted-foreground"><strong className="text-foreground">Objetivo:</strong> {recommendation.objective}</p>
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">{recommendation.actions.map((action) => <li key={action}>• {action}</li>)}</ul>
+                    <p className="mt-3 text-xs text-muted-foreground"><strong className="text-foreground">Antes de avanzar:</strong> {recommendation.prerequisites.join(" · ")}</p>
+                    {metric && <p className="mt-1 text-xs text-muted-foreground"><strong className="text-foreground">Métrica:</strong> {metric.name} — {metric.baselineStatus === "por_medir" ? "por medir" : metric.baselineStatus}</p>}
+                    {recommendation.notRecommendedYet.length > 0 && <p className="mt-1 text-xs text-muted-foreground"><strong className="text-foreground">Todavía no:</strong> {recommendation.notRecommendedYet.join(" · ")}</p>}
+                  </article>
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

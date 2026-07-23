@@ -155,6 +155,30 @@ interface V2Finding {
   contradictions: string[]
 }
 
+interface V2Capability {
+  id: string
+  name: string
+  description: string
+  level: "inicial" | "consolidacion" | "escalable"
+}
+
+interface V2Metric {
+  id: string
+  name: string
+  baselineStatus: "known" | "declared" | "por_medir"
+}
+
+interface V2Recommendation {
+  id: string
+  title: string
+  objective: string
+  actions: string[]
+  horizon: "ahora" | "despues" | "cuando_haya_evidencia"
+  prerequisites: string[]
+  notRecommendedYet: string[]
+  metricIds: string[]
+}
+
 interface V2Accion {
   accionId: string
   prioridad: 1 | 2 | 3
@@ -185,6 +209,9 @@ interface V2Diagnostico {
   evidence?: V2Evidence[]
   sintomas: V2Sintoma[]
   findings?: V2Finding[]
+  capabilities?: V2Capability[]
+  recommendations?: V2Recommendation[]
+  metrics?: V2Metric[]
   acciones: V2Accion[]
   redaccion: V2Redaccion
 }
@@ -273,6 +300,14 @@ function V2Resultado({ diagnostico, score, leadId, email, telefono, nombre }: { 
               </article>
             ))}
           </div>
+        </div>
+      )}
+
+      {(diagnostico.capabilities?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="font-sans text-xl font-bold">Lo que conviene desarrollar ahora</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">{diagnostico.capabilities?.map((capability) => <div key={capability.id} className="rounded-lg bg-primary/5 p-4"><div className="flex justify-between gap-2"><h3 className="text-sm font-semibold">{capability.name}</h3><span className="text-xs text-primary capitalize">{capability.level}</span></div><p className="mt-2 text-xs text-muted-foreground">{capability.description}</p></div>)}</div>
+          {(diagnostico.recommendations?.length ?? 0) > 0 && <div className="mt-5 space-y-3 border-t border-border pt-4"><h3 className="text-sm font-semibold">Ruta recomendada</h3>{diagnostico.recommendations?.map((recommendation) => { const metric = diagnostico.metrics?.find((item) => recommendation.metricIds.includes(item.id)); return <article key={recommendation.id} className="rounded-lg border border-border p-4"><div className="flex justify-between gap-2"><h4 className="font-semibold">{recommendation.title}</h4><span className="text-xs text-muted-foreground">{recommendation.horizon.replaceAll("_", " ")}</span></div><p className="mt-2 text-sm text-muted-foreground">{recommendation.objective}</p><ul className="mt-2 text-sm text-muted-foreground">{recommendation.actions.map((action) => <li key={action}>• {action}</li>)}</ul><p className="mt-2 text-xs text-muted-foreground"><strong className="text-foreground">Antes de avanzar:</strong> {recommendation.prerequisites.join(" · ")}</p>{metric && <p className="mt-1 text-xs text-muted-foreground"><strong className="text-foreground">Métrica:</strong> {metric.name} — {metric.baselineStatus === "por_medir" ? "por medir" : metric.baselineStatus}</p>}</article>})}</div>}
         </div>
       )}
 
