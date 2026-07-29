@@ -55,11 +55,10 @@ function calcularMadurez(herramientas: string[]): number {
   const tieneCRM = herramientas.includes("crm_basico")
   const tieneExcel = herramientas.includes("excel")
   const tieneEmail = herramientas.includes("email_manual")
+  if (tieneCRM && herramientas.length >= 3) return 4
   if (tieneCRM || (tieneExcel && tieneEmail)) return 3
 
-  if (herramientas.length >= 3 && tieneCRM) return 4
-
-  return 5
+  return 2
 }
 
 function calcularPerfilRiesgo(urgencia: string, presupuesto: string): "alto" | "medio" | "bajo" {

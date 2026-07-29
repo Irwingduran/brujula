@@ -91,11 +91,15 @@ export async function POST(request: Request) {
             ),
           )
         } catch (error) {
+          console.error("Error en stream de diagnóstico:", error)
           controller.enqueue(
             encoder.encode(
               eventStream({
                 tipo: "error",
                 mensaje: "No pudimos completar el análisis. Intenta de nuevo.",
+                ...(process.env.NODE_ENV === "development" && error instanceof Error
+                  ? { detalle: error.message }
+                  : {}),
               }),
             ),
           )

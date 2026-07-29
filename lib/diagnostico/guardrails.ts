@@ -10,6 +10,11 @@ interface CoherenciaError {
   errores: string[]
 }
 
+function actionAppliesToSegment(actionSegments: string[], segmento: string): boolean {
+  const genericServicesSegment = segmento.replace(/_profesionales$/, "")
+  return actionSegments.includes(segmento) || actionSegments.includes(genericServicesSegment)
+}
+
 export function validarCoherencia(
   clasificacion: ClasificacionResult,
   sintomas: SintomaResult[],
@@ -38,7 +43,7 @@ export function validarCoherencia(
       }
     }
 
-    if (accion && !accion.segmentosAplica.includes(clasificacion.segmento)) {
+    if (accion && !actionAppliesToSegment(accion.segmentosAplica, clasificacion.segmento)) {
       errores.push(`Acción "${a.accionId}" no aplica al segmento "${clasificacion.segmento}"`)
     }
     if (accion && clasificacion.madurezDigital < accion.madurezMinima) {

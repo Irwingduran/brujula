@@ -269,9 +269,10 @@ async function llamarLLMAcciones(
     etapa: "pipeline_acciones",
   })
 
+  const compatibleSegments = getCompatibleActionSegments(clasificacion.segmento)
   const accionesBase = ACTIONS_CATALOG.filter(
     (a) =>
-      a.segmentosAplica.includes(clasificacion.segmento) &&
+      a.segmentosAplica.some((segmento) => compatibleSegments.includes(segmento)) &&
       clasificacion.madurezDigital >= a.madurezMinima &&
       clasificacion.madurezDigital <= a.madurezMaxima,
   )
@@ -384,6 +385,30 @@ ${erroresPrevios.length ? `LA REDACCIÓN ANTERIOR FUE RECHAZADA. Corrige todos e
   throw new Error(`Redacción genérica o incompatible tras ${MAX_RETRIES} reintentos: ${genericity.errores.join("; ")}`)
 }
 
+function getCompatibleActionSegments(segmento: string): string[] {
+  const genericServicesSegment = segmento.replace(/_profesionales$/, "")
+  return genericServicesSegment === segmento ? [segmento] : [segmento, genericServicesSegment]
+}
+
+function generarAccionesFallback(clasificacion: ClasificacionResult): AccionResult[] {
+  const compatibleSegments = getCompatibleActionSegments(clasificacion.segmento)
+  const compatibles = ACTIONS_CATALOG.filter(
+    (accion) => accion.segmentosAplica.some((segmento) => compatibleSegments.includes(segmento))
+      && clasificacion.madurezDigital >= accion.madurezMinima
+      && clasificacion.madurezDigital <= accion.madurezMaxima,
+  ).slice(0, 3)
+
+  if (compatibles.length !== 3) {
+    throw new Error(`No existen tres acciones fallback compatibles para el segmento ${clasificacion.segmento}`)
+  }
+
+  return compatibles.map((accion, index) => ({
+    accionId: accion.id,
+    prioridad: (index + 1) as 1 | 2 | 3,
+    justificacion: `Paso compatible con tu nivel actual para ${accion.titulo.toLowerCase()}.`,
+  }))
+}
+
 function generarFallback(campos: FormularioCampos, evidence: EvidenceItem[]): DiagnosticoResult {
   const clasificacion = clasificarNegocio(campos)
   const knowledge = getKnowledgePack(clasificacion.industryCode)
@@ -414,11 +439,7 @@ function generarFallback(campos: FormularioCampos, evidence: EvidenceItem[]): Di
     sintomas: fallbackSintomas,
     findings: fallbackFindings,
     ...fallbackRoute,
-    acciones: [
-      { accionId: "implementar_whatsapp_business", prioridad: 1, justificacion: "Paso inicial de bajo costo para organizar la comunicación" },
-      { accionId: "capacitacion_equipo_digital", prioridad: 2, justificacion: "Preparar al equipo para la transformación digital" },
-      { accionId: "auditoria_procesos", prioridad: 3, justificacion: "Identificar áreas específicas de mejora" },
-    ],
+    acciones: generarAccionesFallback(clasificacion),
     redaccion: {
       resumen: fb?.texto ?? "No pudimos analizar todos los detalles, pero basándonos en tu perfil, estos son los primeros pasos recomendados.",
       sintomasPrincipales: [

@@ -203,9 +203,13 @@ function requestPinnedUrl(target: ValidatedPublicUrl, signal: AbortSignal): Prom
   return new Promise((resolve, reject) => {
     const request = sendRequest(requestUrl, {
       headers: { "User-Agent": "Brujula-Bot/1.0 (+website-analysis)" },
-      lookup: (hostname, _options, callback) => {
+      lookup: (hostname, options, callback) => {
         if (hostname !== target.host.hostname) {
           callback(new Error("El cliente intentó resolver un hostname no validado"), "", 0)
+          return
+        }
+        if (options.all) {
+          callback(null, [{ address: target.host.address, family: target.host.family }])
           return
         }
         callback(null, target.host.address, target.host.family)
