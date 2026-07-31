@@ -5,8 +5,12 @@ import { MagnifyingGlass, Warning, Compass, Target, Gauge, ThumbsUp, ThumbsDown 
 import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 import { getPublicSymptomLabel } from "@/lib/diagnostico/symptoms-catalog"
 
+type CompatibleDiagnosticoResult = Omit<DiagnosticoResult, "websiteContext"> & {
+  websiteContext?: DiagnosticoResult["websiteContext"]
+}
+
 interface V2DiagnosisSummaryProps {
-  diagnostico: DiagnosticoResult
+  diagnostico: CompatibleDiagnosticoResult
   isLoading?: boolean
   leadId?: string | null
 }
@@ -73,9 +77,11 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        {websiteContext.message}
-      </div>
+      {websiteContext?.message && (
+        <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          {websiteContext.message}
+        </div>
+      )}
 
       {/* Score de madurez */}
       <div className="glass-card rounded-2xl overflow-hidden border-l-4 border-l-primary">
@@ -228,7 +234,6 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {redaccion.planDeAccion.map((paso, i) => {
-              const labels = ["Paso 1", "Paso 2", "Paso 3"]
               return (
                 <div
                   key={i}

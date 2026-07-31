@@ -10,6 +10,21 @@ import {
 } from "@/components/ui/dialog"
 import { Envelope, CheckCircle } from "@phosphor-icons/react"
 
+interface ProposalError {
+  message: string
+  code?: string
+  incidentId?: string
+  providerStatus?: number
+}
+
+const PROPOSAL_ERROR_MESSAGES: Record<string, string> = {
+  diagnosis_incomplete: "El diagnóstico aún no está completo para enviarse.",
+  email_not_configured: "El correo no está configurado en este momento.",
+  email_provider_rejected: "El proveedor de correo rechazó el envío. Verifica el remitente validado y la cuenta de Brevo.",
+  email_provider_timeout: "El proveedor de correo tardó demasiado en responder. Intenta de nuevo.",
+  email_provider_unavailable: "No fue posible conectarnos al proveedor de correo. Intenta de nuevo.",
+}
+
 interface Props {
   leadId: string
   email: string
@@ -20,26 +35,35 @@ interface Props {
 export function EnviarPropuestaModal({ leadId, email, open, onClose }: Props) {
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<ProposalError | null>(null)
 
   const handleSubmit = async () => {
     setEnviando(true)
-    setError("")
+    setError(null)
 
     try {
       const res = await fetch(`/api/leads/${leadId}/enviar-propuesta`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
+      const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Error al enviar propuesta")
+        const code = typeof data.code === "string" ? data.code : undefined
+        setError({
+          message: code ? PROPOSAL_ERROR_MESSAGES[code] ?? data.error : data.error || "No pudimos enviar la propuesta.",
+          code,
+          incidentId: typeof data.incidentId === "string" ? data.incidentId : undefined,
+          providerStatus: typeof data.providerStatus === "number" ? data.providerStatus : undefined,
+        })
+        return
       }
 
       setExito(true)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Algo salió mal. Intenta de nuevo.")
+    } catch {
+      setError({
+        message: "No pudimos conectar con el servicio. Revisa tu conexión e intenta de nuevo.",
+      })
     } finally {
       setEnviando(false)
     }
@@ -48,7 +72,7 @@ export function EnviarPropuestaModal({ leadId, email, open, onClose }: Props) {
   const handleClose = () => {
     setEnviando(false)
     setExito(false)
-    setError("")
+    setError(null)
     onClose()
   }
 
@@ -78,7 +102,11 @@ export function EnviarPropuestaModal({ leadId, email, open, onClose }: Props) {
             </DialogHeader>
 
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <p>{error.message}</p>
+                {error.code && <p className="mt-1 text-xs">Código: <code>{error.code}</code>{error.providerStatus ? ` · Brevo HTTP ${error.providerStatus}` : ""}</p>}
+                {error.incidentId && <p className="mt-1 text-xs">Incidencia: <code>{error.incidentId}</code></p>}
+              </div>
             )}
 
             <div className="flex gap-3">

@@ -100,13 +100,20 @@ export async function POST(
       })
     } catch (error) {
       if (error instanceof EmailSendError) {
+        const incidentId = crypto.randomUUID()
         console.error("Error de proveedor al enviar propuesta:", {
+          incidentId,
           leadId: id,
           code: error.code,
           providerStatus: error.providerStatus,
         })
         return NextResponse.json(
-          { error: "No pudimos enviar la propuesta. Intenta de nuevo.", code: error.code },
+          {
+            error: "No pudimos enviar la propuesta. Intenta de nuevo.",
+            code: error.code,
+            incidentId,
+            providerStatus: error.providerStatus,
+          },
           { status: error.status },
         )
       }
