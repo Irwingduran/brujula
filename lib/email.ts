@@ -1,4 +1,4 @@
-import { BrevoClient } from "@getbrevo/brevo"
+import { BrevoClient, BrevoError, BrevoTimeoutError } from "@getbrevo/brevo"
 import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 
 // Inicializar cliente solo si la API key está disponible
@@ -21,6 +21,62 @@ function escapeHtml(value: string): string {
 
 function firstName(nombre: string): string {
   return nombre.trim().split(/\s+/)[0] || ""
+}
+
+export type EmailSendFailureCode =
+  | "email_not_configured"
+  | "email_provider_rejected"
+  | "email_provider_timeout"
+  | "email_provider_unavailable"
+
+export class EmailSendError extends Error {
+  constructor(
+    public readonly code: EmailSendFailureCode,
+    public readonly status: number,
+    message: string,
+    public readonly providerStatus?: number,
+  ) {
+    super(message)
+    this.name = "EmailSendError"
+  }
+}
+
+function requireEmailConfiguration() {
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    throw new EmailSendError(
+      "email_not_configured",
+      503,
+      "El envío de correo no está configurado.",
+    )
+  }
+}
+
+function toEmailSendError(error: unknown): EmailSendError {
+  if (error instanceof EmailSendError) return error
+
+  if (error instanceof BrevoTimeoutError) {
+    return new EmailSendError(
+      "email_provider_timeout",
+      504,
+      "El proveedor de correo tardó demasiado en responder.",
+    )
+  }
+
+  if (error instanceof BrevoError) {
+    const providerStatus = typeof error.statusCode === "number" ? error.statusCode : undefined
+    return new EmailSendError(
+      "email_provider_rejected",
+      providerStatus && providerStatus >= 500 ? 502 : 422,
+      "El proveedor de correo rechazó el envío.",
+      providerStatus,
+    )
+  }
+
+  return new EmailSendError(
+    "email_provider_unavailable",
+    502,
+    "No fue posible comunicarse con el proveedor de correo.",
+  )
 }
 
 interface LeadEmailData {
@@ -164,11 +220,16 @@ export async function sendSolicitudLlamadaNotification(lead: LlamadaRequestData)
   })
 }
 
-export async function sendPropuestaEmail(lead: PropuestaData) {
+export async function sendPropuestaEmail(lead: PropuestaData): Promise<"sent"> {
+  requireEmailConfiguration()
+
   const client = getBrevoClient()
   if (!client) {
-    console.warn("BREVO_API_KEY no configurada, saltando envío de propuesta")
-    return
+    throw new EmailSendError(
+      "email_not_configured",
+      503,
+      "El envío de correo no está configurado.",
+    )
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
@@ -262,12 +323,18 @@ export async function sendPropuestaEmail(lead: PropuestaData) {
     </div>
   `
 
-  await client.transactionalEmails.sendTransacEmail({
-    subject: `Tu propuesta completa, ${lead.nombre.split(" ")[0]} — Brújula`,
-    sender: { email: fromEmail, name: fromName },
-    to: [{ email: lead.email, name: lead.nombre }],
-    htmlContent,
-  })
+  try {
+    await client.transactionalEmails.sendTransacEmail({
+      subject: `Tu propuesta completa, ${lead.nombre.split(" ")[0]} — Brújula`,
+      sender: { email: fromEmail, name: fromName },
+      to: [{ email: lead.email, name: lead.nombre }],
+      htmlContent,
+    })
+  } catch (error) {
+    throw toEmailSendError(error)
+  }
+
+  return "sent"
 }
 
 export async function sendReunionLinkEmail(data: {

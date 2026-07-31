@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { sendPropuestaEmail } from "@/lib/email"
+import { sendPropuestaEmail, EmailSendError } from "@/lib/email"
+import { DiagnosticoFinalSchema } from "@/lib/diagnostico/schemas"
 
 export async function POST(
   request: Request,
@@ -24,17 +25,19 @@ export async function POST(
     let servicio_titulo: string | undefined
 
     if (isV2 && lead.diagnostico_v2) {
-      const v2 = lead.diagnostico_v2 as {
-        redaccion: {
-          resumen: string
-          sintomasPrincipales: string[]
-          planDeAccion: { paso: string; descripcion: string; urgencia: string }[]
-          scoreTexto: string
-        }
-        sintomas: { sintomaId: string; score: number; evidencia: string }[]
-        clasificacion: { madurezDigital: number }
+      const parsedV2 = DiagnosticoFinalSchema.safeParse(lead.diagnostico_v2)
+      if (!parsedV2.success) {
+        console.error("Diagnóstico v2 inválido al enviar propuesta:", {
+          leadId: id,
+          issues: parsedV2.error.issues.map((issue) => issue.path.join(".")),
+        })
+        return NextResponse.json(
+          { error: "El diagnóstico no está completo para enviarse.", code: "diagnosis_incomplete" },
+          { status: 422 },
+        )
       }
 
+      const v2 = parsedV2.data
       diagnostico_texto = v2.redaccion.resumen
       sintomas = v2.sintomas
       plan_accion = v2.redaccion.planDeAccion
@@ -78,22 +81,37 @@ export async function POST(
 
     const nombre = lead.nombre || ""
 
-    await sendPropuestaEmail({
-      nombre,
-      email: lead.email,
-      id: lead.id,
-      industria: lead.industria,
-      tamano_empresa: lead.tamano_empresa,
-      diagnostico_texto,
-      sintomas,
-      plan_accion,
-      score_texto,
-      beneficios,
-      servicio_titulo,
-      servicio_recomendado: briefing?.propuesta_sugerida?.servicio_primario,
-      rango_precio: briefing?.propuesta_sugerida?.rango_precio_sugerido,
-      roi_estimado: briefing?.propuesta_sugerida?.roi_argumento,
-    })
+    try {
+      await sendPropuestaEmail({
+        nombre,
+        email: lead.email,
+        id: lead.id,
+        industria: lead.industria,
+        tamano_empresa: lead.tamano_empresa,
+        diagnostico_texto,
+        sintomas,
+        plan_accion,
+        score_texto,
+        beneficios,
+        servicio_titulo,
+        servicio_recomendado: briefing?.propuesta_sugerida?.servicio_primario,
+        rango_precio: briefing?.propuesta_sugerida?.rango_precio_sugerido,
+        roi_estimado: briefing?.propuesta_sugerida?.roi_argumento,
+      })
+    } catch (error) {
+      if (error instanceof EmailSendError) {
+        console.error("Error de proveedor al enviar propuesta:", {
+          leadId: id,
+          code: error.code,
+          providerStatus: error.providerStatus,
+        })
+        return NextResponse.json(
+          { error: "No pudimos enviar la propuesta. Intenta de nuevo.", code: error.code },
+          { status: error.status },
+        )
+      }
+      throw error
+    }
 
     const ahora = new Date()
     await prisma.lead.update({

@@ -61,6 +61,9 @@ export function WizardShell() {
       ...prev,
       step1: data,
     }))
+    // El botón de envío está al final del paso 1; reiniciamos la vista antes
+    // de montar el paso 2 para que sus primeras preguntas queden visibles.
+    window.scrollTo({ top: 0, behavior: "auto" })
     setCurrentStep(1)
   }, [])
 
