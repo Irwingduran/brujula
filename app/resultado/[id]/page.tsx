@@ -9,6 +9,7 @@ import { notFound } from "next/navigation"
 import type { DiagnosisResult, ScoreBreakdown } from "@/lib/types"
 import { ResultadoCTAs } from "@/components/diagnosis/resultado-ctas"
 import { ServiciosRecomendados } from "@/components/diagnosis/servicios-recomendados"
+import { getPublicSymptomLabel } from "@/lib/diagnostico/symptoms-catalog"
 
 export const metadata: Metadata = {
   title: "Tu Diagnóstico | Brújula",
@@ -204,8 +205,14 @@ interface V2Clasificacion {
   perfilRiesgo: string
 }
 
+interface V2WebsiteContext {
+  status: "not_provided" | "analyzed" | "unavailable"
+  message: string
+}
+
 interface V2Diagnostico {
   clasificacion: V2Clasificacion
+  websiteContext?: V2WebsiteContext
   evidence?: V2Evidence[]
   sintomas: V2Sintoma[]
   findings?: V2Finding[]
@@ -227,6 +234,12 @@ function V2Resultado({ diagnostico, score, leadId, email, telefono, nombre }: { 
           {diagnostico.redaccion.resumen}
         </p>
       </div>
+
+      {diagnostico.websiteContext && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          {diagnostico.websiteContext.message}
+        </div>
+      )}
 
       <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="font-sans text-xl font-bold">Tu nivel de madurez digital</h2>
@@ -260,7 +273,7 @@ function V2Resultado({ diagnostico, score, leadId, email, telefono, nombre }: { 
                 return (
                   <div key={sintoma.sintomaId} className="rounded-lg bg-muted/50 p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold capitalize text-foreground">{sintoma.sintomaId.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-semibold text-foreground">{getPublicSymptomLabel(sintoma.sintomaId)}</span>
                       {sintoma.confidence && <span className="text-[11px] text-muted-foreground">Confianza {sintoma.confidence}</span>}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{sintoma.evidencia}</p>

@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { sendHotLeadNotification } from "@/lib/email"
 import { NextResponse } from "next/server"
-import type { DiagnosisResult } from "@/lib/types"
 
 // POST /api/leads/[id]/track — Registrar eventos de tracking
 export async function POST(
@@ -60,7 +59,6 @@ export async function POST(
           id: lead.id,
           industria: lead.industria,
           score: { total: scoreTotal },
-          diagnostico: lead.diagnostico as any,
         })
       } catch (e) {
         console.error("Error notificando lead HOT:", e)

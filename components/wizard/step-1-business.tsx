@@ -131,11 +131,16 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     )
   }
 
-  // ✅ Validación de formato de URL
-  function isValidUrl(url: string): boolean {
+  function normalizeWebsiteUrl(value: string): string {
+    const trimmed = value.trim()
+    if (!trimmed) return ""
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  }
+
+  function isValidUrl(value: string): boolean {
     try {
-      new URL(url)
-      return true
+      const parsed = new URL(normalizeWebsiteUrl(value))
+      return parsed.protocol === "http:" || parsed.protocol === "https:"
     } catch {
       return false
     }
@@ -152,19 +157,20 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     if (herramientas.includes("otro") && !herramientaOtra.trim()) e.herramientaOtra = "Especifica tu herramienta"
     // ✅ Validación opcional de URL si se proporcionó
     if (urlSitio.trim() && !isValidUrl(urlSitio)) {
-      e.urlSitio = "Ingresa una URL válida (ej: https://tunegocio.com)"
+      e.urlSitio = "Ingresa un dominio válido (ej: tunegocio.com)"
     }
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const analyzeWebsite = useCallback(async (url: string): Promise<void> => {
-    if (!url.trim() || !isValidUrl(url)) return
+    const normalizedUrl = normalizeWebsiteUrl(url)
+    if (!normalizedUrl || !isValidUrl(normalizedUrl)) return
     try {
       const res = await fetch("/api/website/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: normalizedUrl }),
       })
       const data = await res.json()
       if (data.error) {
@@ -183,10 +189,10 @@ export function Step1Business({ data, onComplete }: Step1Props) {
     setSubmitting(true)
 
     // Auto-analyze website if URL provided and not yet analyzed (or URL changed)
-    const trimmedUrl = urlSitio.trim()
-    if (trimmedUrl && isValidUrl(trimmedUrl) && trimmedUrl !== lastAnalyzedUrl.current) {
-      lastAnalyzedUrl.current = trimmedUrl
-      await analyzeWebsite(trimmedUrl)
+    const normalizedUrl = normalizeWebsiteUrl(urlSitio)
+    if (normalizedUrl && isValidUrl(normalizedUrl) && normalizedUrl !== lastAnalyzedUrl.current) {
+      lastAnalyzedUrl.current = normalizedUrl
+      await analyzeWebsite(normalizedUrl)
     }
 
     onComplete({
@@ -197,7 +203,7 @@ export function Step1Business({ data, onComplete }: Step1Props) {
       dolor_otro: dolores.includes("otro") ? dolorOtro : undefined,
       herramientas_actuales: herramientas,
       herramienta_otra: herramientas.includes("otro") ? herramientaOtra : undefined,
-      url_sitio: trimmedUrl || undefined,
+      url_sitio: normalizedUrl || undefined,
       website_analysis: websiteAnalysisRef.current ?? undefined,
     })
   }
@@ -413,14 +419,21 @@ export function Step1Business({ data, onComplete }: Step1Props) {
         </div>
 
         <input
-          type="url"
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
           value={urlSitio}
           onChange={(e) => {
             setUrlSitio(e.target.value)
             setWebsiteAnalyzed(false)
             setWebsiteError("")
           }}
-          placeholder="https://tunegocio.com"
+          onBlur={() => {
+            const normalizedUrl = normalizeWebsiteUrl(urlSitio)
+            if (normalizedUrl) setUrlSitio(normalizedUrl)
+          }}
+          placeholder="tunegocio.com"
           className="w-full rounded-xl border-2 border-border bg-white px-4 py-3 text-base text-foreground transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
         />
 

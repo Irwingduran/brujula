@@ -390,6 +390,25 @@ function getCompatibleActionSegments(segmento: string): string[] {
   return genericServicesSegment === segmento ? [segmento] : [segmento, genericServicesSegment]
 }
 
+function buildWebsiteContext(campos: FormularioCampos) {
+  if (!campos.url_sitio) {
+    return {
+      status: "not_provided" as const,
+      message: "Este diagnóstico se basa en tus respuestas; no analizamos un sitio web.",
+    }
+  }
+  if (campos.website_analysis?.error) {
+    return {
+      status: "unavailable" as const,
+      message: "No pudimos verificar el sitio web indicado; este diagnóstico se basa en tus respuestas.",
+    }
+  }
+  return {
+    status: "analyzed" as const,
+    message: "También incorporamos observaciones verificables de tu sitio web.",
+  }
+}
+
 function generarAccionesFallback(clasificacion: ClasificacionResult): AccionResult[] {
   const compatibleSegments = getCompatibleActionSegments(clasificacion.segmento)
   const compatibles = ACTIONS_CATALOG.filter(
@@ -435,6 +454,7 @@ function generarFallback(campos: FormularioCampos, evidence: EvidenceItem[]): Di
 
   const fallback: DiagnosticoResult = {
     clasificacion,
+    websiteContext: buildWebsiteContext(campos),
     evidence: buildPublicEvidence(fallbackEvidence),
     sintomas: fallbackSintomas,
     findings: fallbackFindings,
@@ -511,7 +531,7 @@ export async function ejecutarPipelineDiagnostico(
     const duration = Date.now() - startTime
     console.log(`Pipeline completado en ${duration}ms`)
 
-    return { clasificacion, evidence: buildPublicEvidence(evidence), sintomas, findings, ...route, acciones, redaccion }
+    return { clasificacion, websiteContext: buildWebsiteContext(campos), evidence: buildPublicEvidence(evidence), sintomas, findings, ...route, acciones, redaccion }
   } catch (error) {
     console.error("Error en pipeline, usando fallback:", error)
     return generarFallback(campos, evidence)

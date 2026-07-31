@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { MagnifyingGlass, Warning, Compass, Target, Gauge, ThumbsUp, ThumbsDown } from "@phosphor-icons/react"
 import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
+import { getPublicSymptomLabel } from "@/lib/diagnostico/symptoms-catalog"
 
 interface V2DiagnosisSummaryProps {
   diagnostico: DiagnosticoResult
@@ -53,7 +54,7 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
     )
   }
 
-  const { redaccion, clasificacion, sintomas, findings, capabilities, recommendations, metrics } = diagnostico
+  const { redaccion, clasificacion, sintomas, findings, capabilities, recommendations, metrics, websiteContext } = diagnostico
 
   return (
     <section className="space-y-5">
@@ -70,6 +71,10 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
             {redaccion.resumen}
           </p>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        {websiteContext.message}
       </div>
 
       {/* Score de madurez */}
@@ -126,7 +131,7 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
                 return (
                   <div key={sintoma.sintomaId} className="rounded-xl border border-rose-100 bg-rose-50/40 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs font-semibold capitalize text-rose-800">{sintoma.sintomaId.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-semibold text-rose-800">{getPublicSymptomLabel(sintoma.sintomaId)}</span>
                       <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-rose-700">Confianza {sintoma.confidence}</span>
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-foreground">{sintoma.evidencia}</p>
@@ -138,20 +143,6 @@ export function V2DiagnosisSummary({ diagnostico, isLoading = false, leadId }: V
                   </div>
                 )
               })}
-            </div>
-          )}
-          {/* Chips de síntomas con scores */}
-          {sintomas && sintomas.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {sintomas.map((s) => (
-                <span
-                  key={s.sintomaId}
-                  className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 border border-rose-100"
-                >
-                  {s.sintomaId.replace(/_/g, " ")}
-                  <span className="ml-1 text-rose-500">({s.score}/5)</span>
-                </span>
-              ))}
             </div>
           )}
         </div>

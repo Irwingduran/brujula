@@ -21,6 +21,11 @@ export const PublicEvidenceSchema = z.object({
   reliability: z.enum(["declared", "observed", "inferred"]),
 })
 
+export const WebsiteContextSchema = z.object({
+  status: z.enum(["not_provided", "analyzed", "unavailable"]),
+  message: z.string().min(1),
+})
+
 export const SintomaSchema = z.object({
   sintomaId: z.string().min(1),
   score: z.number().int().min(1).max(5),
@@ -148,6 +153,7 @@ export type RedaccionResult = z.infer<typeof RedaccionSchema>
 
 export const DiagnosticoFinalSchema = z.object({
   clasificacion: ClasificacionSchema,
+  websiteContext: WebsiteContextSchema,
   evidence: z.array(PublicEvidenceSchema),
   sintomas: SintomasOutputSchema,
   findings: z.array(DiagnosticFindingSchema).min(1).max(3),

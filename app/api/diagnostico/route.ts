@@ -4,6 +4,7 @@ import { ejecutarPipelineDiagnostico } from "@/lib/diagnostico/pipeline"
 import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
 import { EvidenceItemSchema } from "@/lib/ai/contracts"
 import { buildDiagnosticEvidence } from "@/lib/diagnostico/evidence"
+import { sendDiagnosticoEmailOnce } from "@/lib/diagnostico/send-email"
 import { assignSuggestedServices } from "@/lib/servicios/suggester"
 
 export async function POST(request: Request) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     const durationMs = Date.now() - (body._startTime || Date.now())
 
     if (leadId) {
+      let persisted = false
       try {
         await prisma.lead.update({
           where: { id: leadId },
@@ -51,6 +53,7 @@ export async function POST(request: Request) {
             pipeline_duration_ms: durationMs,
           },
         })
+        persisted = true
 
         // Sugerir servicios automáticamente según industria y dolores
         await assignSuggestedServices(
@@ -62,6 +65,17 @@ export async function POST(request: Request) {
         )
       } catch (e) {
         console.error("Error guardando diagnóstico en DB:", e)
+      }
+
+      if (persisted) {
+        try {
+          const emailStatus = await sendDiagnosticoEmailOnce(leadId, resultado)
+          if (emailStatus !== "sent" && emailStatus !== "already_sent") {
+            console.warn(`Diagnóstico persistido, pero correo no enviado: ${emailStatus}`)
+          }
+        } catch (emailError) {
+          console.error("Error enviando el diagnóstico por correo:", emailError)
+        }
       }
     }
 

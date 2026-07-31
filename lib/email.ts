@@ -1,4 +1,5 @@
 import { BrevoClient } from "@getbrevo/brevo"
+import type { DiagnosticoResult } from "@/lib/diagnostico/schemas"
 
 // Inicializar cliente solo si la API key está disponible
 function getBrevoClient() {
@@ -8,18 +9,28 @@ function getBrevoClient() {
   return new BrevoClient({ apiKey: process.env.BREVO_API_KEY })
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]!)
+}
+
+function firstName(nombre: string): string {
+  return nombre.trim().split(/\s+/)[0] || ""
+}
+
 interface LeadEmailData {
   nombre: string
   email: string
   id: string
-  diagnostico: {
-    titulo_servicio: string
-    descripcion: string
-    roi_estimado: string
-    precio_rango: string
-  }
-  score: { total: number; segmento: string }
+  diagnostico: DiagnosticoResult
 }
+
+export type DiagnosticoEmailStatus = "sent" | "not_configured"
 
 interface HotLeadData {
   nombre: string
@@ -28,53 +39,63 @@ interface HotLeadData {
   id: string
   industria: string
   score: { total: number }
-  diagnostico: { titulo_servicio: string }
 }
 
-export async function sendDiagnosticoEmail(lead: LeadEmailData) {
+export async function sendDiagnosticoEmail(lead: LeadEmailData): Promise<DiagnosticoEmailStatus> {
   const client = getBrevoClient()
   if (!client) {
-    console.warn("BREVO_API_KEY no configurada, saltando envío de email")
-    return
+    console.warn("BREVO_API_KEY no configurada, saltando envío del diagnóstico")
+    return "not_configured"
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
-  const propuestaUrl = `${baseUrl}/resultado/${lead.id}`
+  const baseUrl = (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "")
+  const resultadoUrl = `${baseUrl}/resultado/${encodeURIComponent(lead.id)}`
   const fromEmail = process.env.FROM_EMAIL || "hola@brujula.digital"
   const fromName = process.env.FROM_NAME || "Brújula"
+  const resumen = escapeHtml(lead.diagnostico.redaccion.resumen)
+  const hallazgo = lead.diagnostico.findings[0]
+  const capacidad = lead.diagnostico.capabilities[0]
+  const nombre = escapeHtml(firstName(lead.nombre))
+  const hallazgoHtml = hallazgo
+    ? `
+      <div style="background: #EFF6FF; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <h3 style="margin: 0 0 8px; color: #1E40AF;">Un punto para priorizar</h3>
+        <p style="margin: 0; font-size: 17px; font-weight: bold;">${escapeHtml(hallazgo.title)}</p>
+        <p style="margin: 8px 0 0; color: #475569;">${escapeHtml(hallazgo.summary)}</p>
+      </div>`
+    : ""
+  const capacidadHtml = capacidad
+    ? `<p style="margin: 0 0 20px; color: #475569;"><strong>Siguiente capacidad a desarrollar:</strong> ${escapeHtml(capacidad.name)}.</p>`
+    : ""
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #334155;">
-      <h2 style="color: #1E40AF;">Hola ${lead.nombre.split(" ")[0]},</h2>
-      <p>Analizamos tu caso y armamos tu diagnóstico personalizado.</p>
-      
-      <div style="background: #DBEAFE; border-radius: 8px; padding: 20px; margin: 24px 0;">
-        <h3 style="margin: 0 0 8px; color: #1E40AF;">Tu solución recomendada</h3>
-        <p style="margin: 0; font-size: 18px; font-weight: bold;">${lead.diagnostico.titulo_servicio}</p>
-        <p style="margin: 8px 0 0; color: #475569;">${lead.diagnostico.descripcion}</p>
-      </div>
-
-      <p><strong>ROI estimado:</strong> ${lead.diagnostico.roi_estimado}</p>
-      <p><strong>Inversión aproximada:</strong> ${lead.diagnostico.precio_rango}</p>
-
-      <a href="${propuestaUrl}" 
-         style="display: inline-block; background: #1E40AF; color: white; padding: 14px 28px; 
-                border-radius: 8px; text-decoration: none; font-weight: bold; margin: 16px 0;">
-        Ver propuesta completa →
+      <h2 style="color: #1E40AF;">Hola ${nombre},</h2>
+      <p>Tu diagnóstico personalizado ya está listo.</p>
+      <p style="color: #475569; line-height: 1.6;">${resumen}</p>
+      ${hallazgoHtml}
+      ${capacidadHtml}
+      <a href="${resultadoUrl}"
+         style="display: inline-block; background: #1E40AF; color: white; padding: 14px 28px;
+                border-radius: 8px; text-decoration: none; font-weight: bold; margin: 4px 0 16px;">
+        Ver tu diagnóstico completo →
       </a>
-
-      <p style="color: #94A3B8; font-size: 14px; margin-top: 32px;">
-        ¿Prefieres hablar con un experto? Responde este email o agenda una llamada desde la propuesta.
+      <p style="color: #64748B; font-size: 14px; margin-top: 24px;">
+        Si quieres contrastar la prioridad principal y definir el primer paso medible, responde este correo para agendar una conversación de 20 minutos.
       </p>
+      <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;" />
+      <p style="color: #94A3B8; font-size: 12px;">Brújula · Transformación digital para PYMEs mexicanas</p>
     </div>
   `
 
   await client.transactionalEmails.sendTransacEmail({
-    subject: `Tu diagnóstico digital está listo, ${lead.nombre.split(" ")[0]}`,
+    subject: `Tu diagnóstico está listo, ${firstName(lead.nombre)} — Brújula`,
     sender: { email: fromEmail, name: fromName },
     to: [{ email: lead.email, name: lead.nombre }],
     htmlContent,
   })
+
+  return "sent"
 }
 
 interface LlamadaRequestData {
@@ -333,7 +354,6 @@ export async function sendHotLeadNotification(lead: HotLeadData) {
         <tr><td style="padding: 8px; color: #94A3B8;">Teléfono</td><td style="padding: 8px;">${lead.telefono}</td></tr>
         <tr><td style="padding: 8px; color: #94A3B8;">Industria</td><td style="padding: 8px;">${lead.industria}</td></tr>
         <tr><td style="padding: 8px; color: #94A3B8;">Score</td><td style="padding: 8px; font-weight: bold; color: #DC2626;">${lead.score.total}/100</td></tr>
-        <tr><td style="padding: 8px; color: #94A3B8;">Servicio sugerido</td><td style="padding: 8px;">${lead.diagnostico.titulo_servicio}</td></tr>
       </table>
       <a href="${baseUrl}/admin" 
          style="display: inline-block; background: #DC2626; color: white; padding: 14px 28px; 

@@ -5,6 +5,7 @@ import { FormularioCamposSchema } from "@/lib/diagnostico/schemas"
 import { EvidenceItemSchema } from "@/lib/ai/contracts"
 import { buildDiagnosticEvidence } from "@/lib/diagnostico/evidence"
 import { extraerChunksDeDiagnostico } from "@/lib/rag/auto-improve"
+import { sendDiagnosticoEmailOnce } from "@/lib/diagnostico/send-email"
 
 function eventStream(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
           const durationMs = Date.now() - startTime
 
           if (leadId) {
+            let persisted = false
             try {
               await prisma.lead.update({
                 where: { id: leadId },
@@ -67,17 +69,29 @@ export async function POST(request: Request) {
                   pipeline_duration_ms: durationMs,
                 },
               })
+              persisted = true
             } catch (e) {
               console.error("Error guardando diagnóstico en DB:", e)
             }
 
-            extraerChunksDeDiagnostico(resultado, null, leadId)
-              .then((stats) =>
-                console.log(
-                  `Auto-mejora: ${stats.insertados} chunks insertados de ${stats.candidatos} candidatos`,
-                ),
-              )
-              .catch((e) => console.warn("Auto-mejora falló (no bloqueante):", e))
+            if (persisted) {
+              try {
+                const emailStatus = await sendDiagnosticoEmailOnce(leadId, resultado)
+                if (emailStatus !== "sent" && emailStatus !== "already_sent") {
+                  console.warn(`Diagnóstico persistido, pero correo no enviado: ${emailStatus}`)
+                }
+              } catch (emailError) {
+                console.error("Error enviando el diagnóstico por correo:", emailError)
+              }
+
+              extraerChunksDeDiagnostico(resultado, null, leadId)
+                .then((stats) =>
+                  console.log(
+                    `Auto-mejora: ${stats.insertados} chunks insertados de ${stats.candidatos} candidatos`,
+                  ),
+                )
+                .catch((e) => console.warn("Auto-mejora falló (no bloqueante):", e))
+            }
           }
 
           controller.enqueue(

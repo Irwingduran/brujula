@@ -125,3 +125,17 @@ export function getSintomaById(id: string): CatalogoSintoma | undefined {
 export function isValidSintomaId(id: string): boolean {
   return SYMPTOMS_CATALOG.some((s) => s.id === id)
 }
+
+
+const PUBLIC_SYMPTOM_LABELS: Record<string, string> = {
+  ps_sin_tracking_horas: "Tiempo y costos por proyecto sin registrar",
+  ps_fuga_clientes: "Seguimiento postservicio insuficiente",
+  ps_sin_crm_profesional: "Información de clientes dispersa",
+  ps_dependencia_referidos: "Dependencia de referidos para captar clientes",
+}
+
+export function getPublicSymptomLabel(id: string): string {
+  return PUBLIC_SYMPTOM_LABELS[id]
+    ?? getSintomaById(id)?.nombre
+    ?? "Señal detectada en tus respuestas"
+}

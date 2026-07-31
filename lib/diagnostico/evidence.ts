@@ -99,5 +99,11 @@ export function getPublicEvidenceLabel(evidence: EvidenceItem): string {
     url_sitio: "Sitio web analizado",
     descripcion: "Descripción observada en el sitio",
   }
-  return `${labels[evidence.field] ?? evidence.field.replace(/_/g, " ")}: ${formatEvidenceValue(evidence.normalizedValue)}`
+  if (evidence.source === "adaptive_answer") {
+    return `Respuesta adicional del cuestionario: ${formatEvidenceValue(evidence.normalizedValue)}`
+  }
+  if (evidence.field.startsWith("qa_") || evidence.field.startsWith("adaptive_")) {
+    return `Respuesta adicional del cuestionario: ${formatEvidenceValue(evidence.normalizedValue)}`
+  }
+  return `${labels[evidence.field] ?? "Respuesta del cuestionario"}: ${formatEvidenceValue(evidence.normalizedValue)}`
 }

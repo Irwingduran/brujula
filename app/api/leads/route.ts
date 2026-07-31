@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { calculateScore } from "@/lib/scoring"
 import { generateDiagnosis } from "@/lib/diagnosis"
-import { sendDiagnosticoEmail, sendHotLeadNotification } from "@/lib/email"
+import { sendHotLeadNotification } from "@/lib/email"
 import { assignSuggestedServices } from "@/lib/servicios/suggester"
 import { WizardSubmissionSchema } from "@/lib/ai/contracts"
 import { buildExternalContextSnapshot, buildWizardEvidence } from "@/lib/formulario/evidence"
@@ -84,21 +84,11 @@ export async function POST(request: Request) {
       console.error("Error asignando servicios sugeridos:", svcError)
     }
 
-    // Enviar emails (no bloquea la respuesta si falla)
+    // El diagnóstico se envía después de persistir el resultado v2 final.
+    // La notificación interna del lead HOT se conserva como operación independiente.
     try {
-      const diagnosisData = lead.diagnostico as any
       const scoreData = lead.score as unknown as ScoreBreakdown
 
-      // Siempre enviar diagnóstico al lead
-      await sendDiagnosticoEmail({
-        nombre: lead.nombre,
-        email: lead.email,
-        id: lead.id,
-        diagnostico: diagnosisData,
-        score: scoreData,
-      })
-
-      // Solo notificar al admin si es HOT
       if (lead.segmento === "HOT") {
         await sendHotLeadNotification({
           nombre: lead.nombre,
@@ -107,12 +97,10 @@ export async function POST(request: Request) {
           id: lead.id,
           industria: lead.industria,
           score: scoreData,
-          diagnostico: diagnosisData,
         })
       }
     } catch (emailError) {
-      // No fallar el request si el email falla
-      console.error("Error enviando email:", emailError)
+      console.error("Error enviando notificación interna:", emailError)
     }
 
     return NextResponse.json(lead, { status: 201 })
