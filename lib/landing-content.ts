@@ -3,11 +3,8 @@ import {
   ChatDots,
   Brain,
   ListChecks,
-
-  Clock,
   SealCheck,
   Crosshair,
-  Sparkle,
   Storefront,
   ForkKnife,
   Wrench,
@@ -80,9 +77,9 @@ export const BEFORE_AFTER = {
 
 // ── BENEFITS ──
 
-export const BENEFITS_BADGE = "Por qué Brújula"
-export const BENEFITS_TITLE = "Diagnóstico digital sin rodeos"
-export const BENEFITS_SUBTITLE = "Enfocado en PYMEs mexicanas, no en consultoría corporativa."
+export const BENEFITS_BADGE = "Lo que recibes"
+export const BENEFITS_TITLE = "Claridad para decidir, no más ruido"
+export const BENEFITS_SUBTITLE = "Un diagnóstico útil incluso si decides implementarlo por tu cuenta."
 
 export const BENEFITS: {
   icon: Icon
@@ -91,28 +88,28 @@ export const BENEFITS: {
   highlight: string
 }[] = [
   {
-    icon: Clock,
-    title: "En minutos, no en semanas",
-    description: "Responde un formulario inteligente y recibes tu diagnóstico al instante. Sin juntas, sin esperar.",
-    highlight: "Rápido",
-  },
-  {
     icon: Crosshair,
-    title: "Hecho para tu negocio",
-    description: "No son consejos genéricos. La IA analiza tu industria, tamaño y herramientas para darte un plan único.",
-    highlight: "100% personalizado",
+    title: "Hallazgos explicados",
+    description: "Conoce qué señales detectamos, qué impacto podrían tener y qué evidencia sostiene cada conclusión.",
+    highlight: "Con contexto",
   },
   {
-    icon: Sparkle,
-    title: "Prioridades claras",
-    description: "Sabes exactamente qué arreglar primero, qué esperar y qué No vale la pena perseguir.",
-    highlight: "Sin ruido",
+    icon: Brain,
+    title: "Capacidades antes que software",
+    description: "Primero definimos lo que tu negocio necesita poder hacer mejor; después tiene sentido hablar de herramientas.",
+    highlight: "Neutral",
+  },
+  {
+    icon: ListChecks,
+    title: "Una ruta priorizada",
+    description: "Distingue qué hacer ahora, qué puede esperar y qué sólo conviene cuando exista suficiente evidencia.",
+    highlight: "Accionable",
   },
   {
     icon: SealCheck,
-    title: "Sin costo, sin compromiso",
-    description: "Zero pesos. Zero tarjeta. El diagnóstico es gratis y siempre lo será. Después tú decides si quieres más.",
-    highlight: "100% gratuito",
+    title: "Métricas para avanzar",
+    description: "Cada prioridad incluye una señal observable para que el cambio pueda medirse y no dependa de percepciones.",
+    highlight: "Medible",
   },
 ]
 
@@ -276,42 +273,47 @@ export const INDUSTRY_CASES: {
 // ── FAQ ──
 
 export const FAQ_BADGE = "Preguntas frecuentes"
-export const FAQ_TITLE = "Todo lo que necesitas saber"
-export const FAQ_SUBTITLE = "Respuestas rápidas a lo que más nos preguntan."
+export const FAQ_TITLE = "Antes de comenzar"
+export const FAQ_SUBTITLE = "Lo importante, sin letra pequeña."
 
 export const FAQ: {
   question: string
   answer: string
 }[] = [
   {
-    question: "¿Esto es realmente gratis?",
+    question: "¿El diagnóstico realmente es gratuito?",
     answer:
-      "Sí, completamente. El diagnóstico digital siempre será gratuito. No pedimos tarjeta, no hay periodo de prueba ni cargos ocultos. Queremos que cualquier PYME mexicana pueda saber qué necesita sin barreras económicas.",
+      "Sí. No pedimos tarjeta ni existe un periodo de prueba. El diagnóstico es útil por sí mismo y tú decides si quieres ejecutar la ruta por tu cuenta o conversar con nuestro equipo.",
   },
   {
-    question: "¿Qué pasa con mis datos?",
+    question: "¿Necesito saber de tecnología?",
     answer:
-      "Tus datos se usan para generar tu diagnóstico y, si tú quieres, para que nuestro equipo te contacte y ayude con los siguientes pasos. No compartimos información con terceros ni vendemos datos. Puedes consultar nuestra política de privacidad para más detalle.",
+      "No. Las preguntas hablan de cómo vendes, atiendes y operas tu negocio. El resultado traduce las señales a lenguaje claro, sin esperar que conozcas herramientas o términos técnicos.",
   },
   {
     question: "¿Funciona para mi tipo de negocio?",
     answer:
-      "Brújula está entrenada con patrones de más de 10 industrias: restaurantes, retail, servicios profesionales, salud, educación, inmobiliaria, tecnología, manufactura y más. El formulario se adapta a tu giro para darte un diagnóstico relevante.",
+      "Brújula adapta las preguntas a tu industria, tamaño, problemas y herramientas actuales. Si la información no es suficiente para sostener una conclusión, el diagnóstico debe mostrar esa limitación en lugar de inventar una respuesta.",
   },
   {
     question: "¿Cuánto tiempo toma?",
     answer:
-      "El formulario se responde en pocos minutos. No necesitas preparar nada ni tener conocimientos técnicos. Solo responde lo que sabes de tu negocio.",
+      "El formulario se responde en pocos minutos. No necesitas preparar documentos: basta con conocer cómo funciona hoy tu negocio y responder con honestidad.",
   },
   {
     question: "¿Qué obtengo al final?",
     answer:
-      "Recibirás un score de madurez digital (1-5), un análisis de los 3 síntomas principales que están frenando tu negocio y un plan de acción priorizado con tiempos y costos estimados. Todo escrito en lenguaje claro, sin jerga técnica.",
+      "Recibes tu nivel de madurez, los principales hallazgos con su evidencia y confianza, las capacidades que conviene desarrollar y una ruta priorizada con métricas sugeridas. También verás qué no recomendamos todavía.",
   },
   {
-    question: "¿Y después del diagnóstico?",
+    question: "¿El resultado intenta venderme algo?",
     answer:
-      "Tú decides. Puedes quedarte con tu plan y ejecutarlo por tu cuenta, o si prefieres, agendar una llamada gratuita con nuestro equipo para que te guíemos en los primeros pasos. Sin presión, sin ventas agresivas.",
+      "No condicionamos el diagnóstico al catálogo de Brújula. Primero identificamos la necesidad y la ruta neutral. Después puedes ejecutarla por tu cuenta o explorar opciones de implementación si existe una compatible.",
+  },
+  {
+    question: "¿Qué pasa con mis datos?",
+    answer:
+      "Los usamos para generar tu diagnóstico y, únicamente con tu autorización, para ayudarte con los siguientes pasos. No vendemos tu información. Consulta el aviso de privacidad para conocer el tratamiento completo.",
   },
 ]
 

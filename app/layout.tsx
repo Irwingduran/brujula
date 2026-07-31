@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Diagnóstico Digital Gratuito para tu Negocio | Brújula',
-  description: 'Encuentra el norte de tu negocio. Diagnóstico gratuito personalizado para digitalizar y escalar. Automatiza procesos, aumenta ventas y mejora tu presencia online.',
+  title: 'Descubre qué tecnología necesita tu negocio | Brújula',
+  description: 'Diagnóstico tecnológico gratuito para PYMEs mexicanas. Identifica qué frena tu negocio, qué debes priorizar y cuál es tu siguiente paso digital.',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',

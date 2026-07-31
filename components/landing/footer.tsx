@@ -11,7 +11,7 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <Logo />
             <p className="max-w-xs text-sm text-muted-foreground">
-              La herramienta que analiza tu negocio y te muestra exactamente dónde mejorar.
+              Diagnóstico tecnológico para entender qué mejorar, por qué importa y cuál es el siguiente paso correcto.
             </p>
           </div>
           
