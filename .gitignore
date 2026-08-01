@@ -20,3 +20,6 @@ out
 # Build artifacts
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+# Email sender (local only)
+/email-sender
