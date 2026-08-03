@@ -1,274 +1,231 @@
-import type { Icon } from "@phosphor-icons/react"
-import {
-  ChatDots,
-  Brain,
-  ListChecks,
-  SealCheck,
-  Crosshair,
-  Storefront,
-  ForkKnife,
-  Wrench,
-  Stethoscope,
-  GraduationCap,
-  Building,
-} from "@phosphor-icons/react"
+/**
+ * Copy de la landing pública.
+ *
+ * Reglas de este archivo:
+ * - Sólo datos serializables: sin JSX, sin componentes y sin iconos.
+ *   Cada sección resuelve su propio icono a partir del `id`.
+ * - Ninguna afirmación puede exceder lo que el diagnóstico entrega hoy.
+ *   No se prometen cifras de retorno, resultados garantizados ni
+ *   automatizaciones que todavía son manuales.
+ */
 
 // ── HERO ──
 
-export const HERO_BADGE = "Diagnóstico digital gratuito · PYMEs mexicanas"
-
-export const HERO_HEADLINE = {
-  prefix: "¿Tu negocio está perdiendo clientes por lo",
-  highlight: "que no tiene",
-  suffix: "en digital?",
-}
-
-export const HERO_SUBTITLE =
-  "El 70% de las PYMEs mexicanas no sabe qué herramientas digitales necesita ni por dónde empezar. Brújula analiza tu operación y te dice exactamente qué priorizar, en qué orden y sin gastar de más."
-
-export const HERO_CTA = "Comenzar diagnóstico gratis"
-
-export const HERO_TRUST_PILLARS = ["Sin registro", "Sin pago", "Rápido"] as const
-
-// ── PREVIEW (before / after) ──
-
-export const PREVIEW_BADGE = "Ejemplo real"
-export const PREVIEW_TITLE = "De estar perdido… a tener un plan claro"
-export const PREVIEW_SUBTITLE = "Así es como Brújula transforma un negocio sin rumbo digital en uno con hoja de ruta."
-
-export const BEFORE_AFTER = {
-  business: {
-    name: "Abarrotes Don Memo",
-    meta: "Retail · 1–5 personas · CDMX",
+export const HERO = {
+  badge: "Diagnóstico digital gratuito · PyMEs en México",
+  headline: {
+    prefix: "Descubre qué mejorar primero en tu negocio,",
+    highlight: "antes de gastar",
+    suffix: "en tecnología",
   },
-  before: {
-    label: "Hoy",
-    maturity: 2,
-    scores: [
-      { label: "Visibilidad", value: 1, max: 5 },
-      { label: "Captación", value: 2, max: 5 },
-      { label: "Operaciones", value: 3, max: 5 },
-      { label: "Retención", value: 1, max: 5 },
-    ],
-    symptoms: [
-      "Sin presencia en búsquedas locales",
-      "Dependencia del boca a boca",
-      "Sin seguimiento postventa",
-    ],
-    summary: "Sin presencia digital, sin captación estructurada y sin forma de retener clientes.",
+  subtitle:
+    "Brújula revisa cómo vendes, atiendes y operas hoy. Al terminar recibes tus hallazgos principales con la evidencia que los sostiene, la capacidad que conviene desarrollar y una ruta priorizada con una forma de medirla.",
+  primaryCta: "Iniciar mi diagnóstico gratuito",
+  secondaryCta: "Ver cómo piensa Brújula",
+  trustPills: ["Sin tarjeta", "Resultado en minutos", "100% Gratis"],
+} as const
+
+// ── VISTA PREVIA DEL DIAGNÓSTICO ──
+// Refleja la estructura real del resultado: madurez, hallazgo con
+// confianza, capacidad prioritaria y métrica sugerida.
+
+export const PREVIEW = {
+  eyebrow: "Ejemplo de resultado",
+  metricLabel: "Métrica",
+  /** El diagnóstico es real; este caso es una muestra, no un cliente. */
+  disclaimer: "Ejemplo ilustrativo con la estructura real del resultado.",
+  carouselLabel: "Ejemplos de lo que incluye el diagnóstico",
+  slideRoleDescription: "diapositiva",
+  autoplayInterval: 7000,
+  controls: {
+    pause: "Pausar la rotación de ejemplos",
+    play: "Reanudar la rotación de ejemplos",
+    goTo: "Ver ejemplo",
   },
-  after: {
-    label: "Con Brújula",
-    maturity: 4,
-    scores: [
-      { label: "Visibilidad", value: 4, max: 5 },
-      { label: "Captación", value: 4, max: 5 },
-      { label: "Operaciones", value: 4, max: 5 },
-      { label: "Retención", value: 3, max: 5 },
-    ],
-    actions: [
-      "Google Business optimizado con fotos y horarios",
-      "WhatsApp Business con catálogo digital",
-      "CRM básico para registrar clientes",
-    ],
-    summary: "Aparece en búsquedas locales, capta leads todos los días y da seguimiento sin perder clientes.",
-  },
-}
+} as const
 
-// ── BENEFITS ──
-
-export const BENEFITS_BADGE = "Lo que recibes"
-export const BENEFITS_TITLE = "Claridad para decidir, no más ruido"
-export const BENEFITS_SUBTITLE = "Un diagnóstico útil incluso si decides implementarlo por tu cuenta."
-
-export const BENEFITS: {
-  icon: Icon
-  title: string
-  description: string
-  highlight: string
-}[] = [
+/**
+ * Tarjetas de la vista previa del hero.
+ *
+ * Cada una muestra una faceta distinta del resultado y usa vocabulario real
+ * del contrato del diagnóstico: confiabilidad `Declarado`/`Observado`, horizonte
+ * `ahora`/`después`/`cuando haya evidencia`, confianza cualitativa, línea base
+ * `por medir` y lo que todavía no conviene recomendar.
+ *
+ * `kind` discrimina la forma de cada tarjeta, así que agregar una variante
+ * obliga a resolver su render en el componente.
+ */
+export const PREVIEW_SLIDES = [
   {
-    icon: Crosshair,
-    title: "Hallazgos explicados",
-    description: "Conoce qué señales detectamos, qué impacto podrían tener y qué evidencia sostiene cada conclusión.",
-    highlight: "Con contexto",
-  },
-  {
-    icon: Brain,
-    title: "Capacidades antes que software",
-    description: "Primero definimos lo que tu negocio necesita poder hacer mejor; después tiene sentido hablar de herramientas.",
-    highlight: "Neutral",
-  },
-  {
-    icon: ListChecks,
-    title: "Una ruta priorizada",
-    description: "Distingue qué hacer ahora, qué puede esperar y qué sólo conviene cuando exista suficiente evidencia.",
-    highlight: "Accionable",
-  },
-  {
-    icon: SealCheck,
-    title: "Métricas para avanzar",
-    description: "Cada prioridad incluye una señal observable para que el cambio pueda medirse y no dependa de percepciones.",
-    highlight: "Medible",
-  },
-]
-
-// ── TESTIMONIALS ──
-
-export const TESTIMONIALS_BADGE = "Lo que dicen otros dueños"
-export const TESTIMONIALS_TITLE = "PYMEs como la tuya ya lo usaron"
-export const TESTIMONIALS_SUBTITLE = "Dueños de negocio que descubrieron qué les faltaba y qué hacer."
-
-export const TESTIMONIALS: {
-  avatar: string
-  name: string
-  business: string
-  quote: string
-  result: string
-  icon: Icon
-}[] = [
-  {
-    avatar: "MG",
-    name: "María Gutiérrez",
-    business: "Taquería El Fogón · Gdl",
-    quote:
-      "Sabía que me faltaba algo en digital, pero no tenía idea por dónde empezar. Brújula me dijo exactamente qué hacer y en una semana ya tenía Google Business funcionando. Llegaron clientes que ni sabía que estaban buscándome.",
-    result: "+40% clientes nuevos en el primer mes",
-    icon: ForkKnife,
-  },
-  {
-    avatar: "CL",
-    name: "Carlos López",
-    business: "Taller Mecánico Express · CDMX",
-    quote:
-      "Creía que con el boca a boca bastaba. El diagnóstico me mostró que estaba perdiendo clientes por no tener WhatsApp Business ni registro de los que me buscaban. Implementé lo que me recomendaron y ahora tengo clientes que repiten.",
-    result: "30% más de recompra en 60 días",
-    icon: Wrench,
-  },
-  {
-    avatar: "AR",
-    name: "Ana Ramírez",
-    business: "Clínica Dental · Monterrey",
-    quote:
-      "Llevaba años queriendo digitalizarme pero siempre terminaba abrumada. Brújula me dio solo 3 prioridades. Las ejecuté en orden y en dos meses ya siento que tengo control de mi consultorio.",
-    result: "Consultas agendadas por WhatsApp",
-    icon: Stethoscope,
-  },
-]
-
-// ── INDUSTRY CASES ──
-
-export const INDUSTRY_BADGE = "Para tu industria"
-export const INDUSTRY_TITLE = "Esto es lo que Brújula detecta en cada giro"
-export const INDUSTRY_SUBTITLE = "Selecciona tu industria y ve un adelanto del diagnóstico que recibirías."
-
-export const INDUSTRY_ICONS: Record<string, Icon> = {
-  restaurante: ForkKnife,
-  retail: Storefront,
-  servicios: Wrench,
-  salud: Stethoscope,
-  educacion: GraduationCap,
-  inmobiliaria: Building,
-}
-
-export const INDUSTRY_CASES: {
-  id: string
-  label: string
-  summary: string
-  symptoms: string[]
-  actions: string[]
-}[] = [
-  {
-    id: "restaurante",
-    label: "Restaurante",
-    summary: "Dueños que dependen del delivery por app, pierden comisión y no tienen relación directa con el comensal.",
-    symptoms: [
-      "Sin presencia en Google Maps ni Google Business",
-      "Dependencia total de apps de delivery (sin base de clientes propia)",
-      "Sin control de inventario ni trazabilidad de pedidos",
-    ],
-    actions: [
-      "Google Business Profile con menú y fotos profesionales",
-      "WhatsApp Business para pedidos directos (sin comisión)",
-      "Sistema de inventario básico para reducir merma",
+    kind: "chain",
+    id: "cadena",
+    title: "Así se ve tu diagnóstico",
+    maturity: { label: "Madurez digital", value: 2, max: 5 },
+    /** Los `id` son los eslabones de `DECISION_LAYERS`, en el orden de la cadena. */
+    steps: [
+      {
+        id: "evidencia",
+        eyebrow: "Evidencia",
+        text: "“Los prospectos me escriben por WhatsApp y ahí se queda todo.”",
+        tag: "Declarado",
+      },
+      {
+        id: "hallazgo",
+        eyebrow: "Hallazgo",
+        text: "El seguimiento comercial depende de la memoria.",
+        tag: "Confianza alta",
+      },
+      {
+        id: "capacidad",
+        eyebrow: "Capacidad",
+        text: "Centralizar prospectos y controlar su seguimiento.",
+        tag: "Prioridad 1",
+      },
+      {
+        id: "ruta",
+        eyebrow: "Primer paso",
+        text: "Registrar cada prospecto y definir su siguiente contacto.",
+        metric: "Contactos atendidos en 24 h",
+        tag: "Por medir",
+      },
     ],
   },
   {
-    id: "retail",
-    label: "Retail / Tienda",
-    summary: "Negocios que solo venden en local y no tienen cómo captar clientes fuera de su cuadra.",
-    symptoms: [
-      "Sin catálogo digital ni presencia en redes con tienda",
-      "Pérdida de ventas por no tener seguimiento de clientes",
-      "Stock manejado en libretas o Excel sin control",
+    kind: "route",
+    id: "ruta",
+    title: "Qué hacer y qué puede esperar",
+    meta: { label: "Revisión", value: "90 días" },
+    stops: [
+      {
+        horizon: "Ahora",
+        state: "now",
+        text: "Registrar cada prospecto y definir su siguiente contacto.",
+        prerequisite: "Acordar quién da seguimiento.",
+      },
+      {
+        horizon: "Después",
+        state: "later",
+        text: "Automatizar recordatorios de seguimiento.",
+        prerequisite: "Que el registro ya esté en uso.",
+      },
+      {
+        horizon: "Cuando haya evidencia",
+        state: "evidence",
+        text: "Invertir en anuncios para atraer más prospectos.",
+        prerequisite: "Saber cuántos contactos terminan en venta.",
+      },
     ],
-    actions: [
-      "Catálogo digital en WhatsApp Business y redes sociales",
-      "Registro básico de clientes con historial de compras",
-      "Control de inventario digital con alertas de reposición",
-    ],
+    notYet: {
+      label: "Todavía no",
+      text: "Un CRM con automatizaciones avanzadas: hoy sumaría costo sin resolver el seguimiento básico.",
+    },
   },
   {
-    id: "servicios",
-    label: "Servicios Profesionales",
-    summary: "Profesionistas que dependen del referido y no tienen canal de captación digital.",
-    symptoms: [
-      "Captación de clientes 100% por referidos (sin crecimiento escalable)",
-      "Sin presencia digital que genere confianza antes del primer contacto",
-      "Seguimiento manual de proyectos y cotizaciones",
+    kind: "traceability",
+    id: "trazabilidad",
+    title: "De dónde sale cada conclusión",
+    meta: { label: "Señales usadas", value: "3" },
+    confidence: { label: "Confianza", value: "Media", levels: ["Baja", "Media", "Alta"] },
+    sources: [
+      { label: "Cuestionario", detail: "Cómo llegan tus clientes hoy", reliability: "Declarado" },
+      { label: "Pregunta de seguimiento", detail: "Qué pasa tras el primer contacto", reliability: "Declarado" },
+      { label: "Tu sitio web", detail: "Sin forma de dejar datos de contacto", reliability: "Observado" },
     ],
-    actions: [
-      "Perfil profesional en Google con reseñas y portafolio",
-      "CRM básico para automatizar seguimiento de leads",
-      "Landing page con servicio y formulario de contacto",
-    ],
+    missing: {
+      label: "Para confirmarlo conviene conocer",
+      items: ["Cuántos prospectos recibes por semana", "Cuántos terminan en venta"],
+    },
+  },
+] as const
+
+export type PreviewSlide = (typeof PREVIEW_SLIDES)[number]
+
+// ── ANTES DE BRÚJULA ──
+
+export const PROBLEM = {
+  eyebrow: "Antes de Brújula",
+  title: "A la mayoría de las PyMEs no les faltan ganas. Les falta un mapa.",
+  description:
+    "Sin un diagnóstico claro, cada decisión tecnológica es una apuesta: un CRM porque lo recomendó un conocido, anuncios pagados sin saber si el problema es de marketing o de seguimiento.",
+  beforeLabel: "Sin dirección clara",
+  afterLabel: "Con una ruta clara",
+} as const
+
+/**
+ * Puntos cardinales de la rosa de los vientos.
+ * El orden del arreglo es el orden de lectura: N, E, S, O.
+ */
+export const COMPASS_POINTS = [
+  {
+    dir: "N",
+    title: "Gratis, sin tarjeta",
+    description: "Sólo te pedimos un correo para enviarte el resultado.",
   },
   {
-    id: "salud",
-    label: "Salud / Bienestar",
-    summary: "Consultorios y clínicas que pierden pacientes por falta de agenda digital y seguimiento.",
-    symptoms: [
-      "Agenda de citas manual con alto índice de no-show",
-      "Sin historial digital de pacientes ni recordatorios",
-      "Poca presencia online que genera desconfianza en nuevos pacientes",
-    ],
-    actions: [
-      "Sistema de agendamiento digital con recordatorios automáticos",
-      "Expediente digital básico por paciente",
-      "Google Business Profile con servicios y opiniones",
-    ],
+    dir: "E",
+    title: "Minutos, no semanas",
+    description: "Tu diagnóstico se genera al terminar el cuestionario.",
   },
   {
-    id: "educacion",
-    label: "Educación / Capacitación",
-    summary: "Instructores y academias que no logran llenar grupos por falta de canal de inscripción digital.",
-    symptoms: [
-      "Inscripciones manuales que frenan la conversión de alumnos",
-      "Sin embudo de captación para nuevos estudiantes",
-      "Comunicación dispersa con alumnos y padres",
-    ],
-    actions: [
-      "Página de inscripción con formulario y pago en línea",
-      "CRM para seguimiento de leads y comunicación automatizada",
-      "Calendario de cursos visible en web y redes sociales",
-    ],
+    dir: "S",
+    title: "Tu evidencia, no una plantilla",
+    description: "Cada conclusión se sostiene en lo que tú respondiste.",
   },
   {
-    id: "inmobiliaria",
-    label: "Inmobiliaria",
-    summary: "Asesores que pierden leads porque no tienen sistema para dar seguimiento organizado.",
-    symptoms: [
-      "Leads sin seguimiento estructurado (se enfrían en días)",
-      "Propiedades publicadas sin fotos profesionales ni tour virtual",
-      "Sin métricas de conversión por asesor ni por propiedad",
-    ],
-    actions: [
-      "CRM inmobiliario con automatización de seguimiento",
-      "Catálogo digital de propiedades con fotos y video tour",
-      "Dashboard de métricas de conversión por asesor",
-    ],
+    dir: "O",
+    title: "Tú decides el siguiente paso",
+    description:
+      "Puedes ejecutar la ruta por tu cuenta o pedirnos una conversación de 20 minutos.",
   },
-]
+] as const
+
+// ── CÓMO PIENSA BRÚJULA ──
+
+export const THINKING = {
+  id: "como-piensa",
+  eyebrow: "Cómo piensa Brújula",
+  title: "No es una IA que adivina. Es una aguja que se calibra.",
+  description:
+    "Una brújula real no apunta al norte por instinto: su aguja se estabiliza filtrando interferencia hasta alinearse con el campo real. Brújula hace lo mismo con tu negocio — no responde con una plantilla genérica, valida cada conclusión contra lo que tú realmente dijiste.",
+  note: "Si falta información, te lo decimos — no inventamos certeza para que una recomendación suene mejor. Y no todo tiene que resolverse hoy: tu ruta distingue lo urgente de lo prematuro, igual que una brújula te dice hacia dónde ir sin fingir que ya llegaste.",
+} as const
+
+/** `id` resuelve el icono en el componente; `tone` marca el cierre de la cadena. */
+export const DECISION_LAYERS = [
+  {
+    id: "evidencia",
+    eyebrow: "01 · Evidencia",
+    title: "Lo que realmente pasa",
+    description:
+      "Tus respuestas, procesos y sitio web, cuando nos autorizas a analizarlo.",
+    tone: "primary",
+  },
+  {
+    id: "hallazgo",
+    eyebrow: "02 · Hallazgo",
+    title: "Lo que está frenando",
+    description: "Señales conectadas con su impacto probable y nivel de confianza.",
+    tone: "primary",
+  },
+  {
+    id: "capacidad",
+    eyebrow: "03 · Capacidad",
+    title: "Lo que necesitas poder hacer",
+    description:
+      "La capacidad de negocio antes de hablar de herramientas o proveedores.",
+    tone: "primary",
+  },
+  {
+    id: "ruta",
+    eyebrow: "04 · Ruta",
+    title: "Qué hacer y en qué orden",
+    description:
+      "Un siguiente paso proporcional, con prerrequisitos y una forma de medirlo.",
+    tone: "accent",
+  },
+] as const
+
+export type DecisionLayerId = (typeof DECISION_LAYERS)[number]["id"]
 
 // ── FAQ ──
 
@@ -283,7 +240,7 @@ export const FAQ: {
   {
     question: "¿El diagnóstico realmente es gratuito?",
     answer:
-      "Sí. No pedimos tarjeta ni existe un periodo de prueba. El diagnóstico es útil por sí mismo y tú decides si quieres ejecutar la ruta por tu cuenta o conversar con nuestro equipo.",
+      "Sí. No pedimos tarjeta ni existe un periodo de prueba. Sólo necesitamos un correo para enviarte el resultado. El diagnóstico es útil por sí mismo y tú decides si quieres ejecutar la ruta por tu cuenta o conversar con nuestro equipo.",
   },
   {
     question: "¿Necesito saber de tecnología?",
@@ -317,44 +274,15 @@ export const FAQ: {
   },
 ]
 
-// ── HOW IT WORKS ──
+// ── CTA FINAL ──
 
-export const HOW_BADGE = "Cómo funciona"
-export const HOW_TITLE = "Tres pasos, un plan claro"
-export const HOW_SUBTITLE = "Sin consultores, sin jerga técnica, sin esperar"
+export const FINAL_CTA = {
+  title: "Tu negocio ya da señales. Vamos a leerlas.",
+  subtitle:
+    "Obtén una ruta clara para decidir qué mejorar primero y qué no necesitas todavía.",
+  cta: "Iniciar mi diagnóstico gratuito",
+} as const
 
-export const STEPS: {
-  icon: Icon
-  step: string
-  title: string
-  description: string
-}[] = [
-  {
-    icon: ChatDots,
-    step: "01",
-    title: "Cuéntanos sobre tu negocio",
-    description:
-      "Industria, herramientas que usas, tus mayores dolores y cuánto puedes invertir. Solo toma unos minutos.",
-  },
-  {
-    icon: Brain,
-    step: "02",
-    title: "Brújula analiza tu caso",
-    description:
-      "La IA cruza tus respuestas con patrones reales de PYMEs mexicanas y detecta qué está fallando y por qué.",
-  },
-  {
-    icon: ListChecks,
-    step: "03",
-    title: "Recibes tu plan priorizado",
-    description:
-      "Qué hacer esta semana, qué esperar y qué no vale la pena en tu caso — con presupuesto y tiempo estimado.",
-  },
-]
+// ── RUTAS ──
 
-// ── FINAL CTA ──
-
-export const CTA_TITLE = "Tu diagnóstico es solo el comienzo"
-export const CTA_SUBTITLE =
-  "Responde el diagnóstico hoy y recibe tu plan en minutos. Después, si quieres, agendamos una llamada para profundizar."
-export const CTA_LABEL = "Comenzar diagnóstico gratis"
+export const DIAGNOSTIC_PATH = "/diagnostico"
